@@ -1,0 +1,8 @@
+[package]
+name = "RustCraft"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+glium = "0.36"
+image = "0.25"
