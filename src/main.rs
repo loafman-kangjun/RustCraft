@@ -4,8 +4,10 @@ use glium::Surface;
 use shader::shader_pro;
 use shapevec::SHAPE;
 
+
 mod shader;
 mod shapevec;
+mod pngconver;
 
 fn main() {
     let event_loop = glium::winit::event_loop::EventLoop::builder()
@@ -14,16 +16,8 @@ fn main() {
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
         .with_title("Glium tutorial #6")
         .build(&event_loop);
-
-    let image = image::load(
-        std::io::Cursor::new(&include_bytes!("./opengl.png")),
-        image::ImageFormat::Png,
-    )
-    .unwrap()
-    .to_rgba8();
-    let image_dimensions = image.dimensions();
-    let image =
-        glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
+    
+    let image = pngconver::image();
     let texture = glium::Texture2d::new(&display, image).unwrap();
 
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);

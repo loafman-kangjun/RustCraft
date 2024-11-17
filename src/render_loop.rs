@@ -1,5 +1,5 @@
-use glium::{Display, Surface, Program, VertexBuffer, index::NoIndices, texture::Texture2d};
 use glium::index::PrimitiveType;
+use glium::{index::NoIndices, texture::Texture2d, Display, Program, Surface, VertexBuffer};
 
 pub fn run_event_loop(
     event_loop: glium::winit::event_loop::EventLoop<()>,
@@ -15,7 +15,7 @@ pub fn run_event_loop(
             glium::winit::event::Event::WindowEvent { event, .. } => match event {
                 glium::winit::event::WindowEvent::CloseRequested => {
                     window_target.exit();
-                },
+                }
                 glium::winit::event::WindowEvent::RedrawRequested => {
                     let mut target = display.draw();
                     target.clear_color(0.0, 0.0, 1.0, 1.0);
@@ -27,17 +27,17 @@ pub fn run_event_loop(
                     target.draw(&vertex_buffer, &indices, &program, &uniforms,
                                 &Default::default()).unwrap();
                     target.finish().unwrap();
-                },
+                }
                 glium::winit::event::WindowEvent::Resized(window_size) => {
                     display.resize(window_size.into());
-                },
+                }
                 _ => (),
             },
             glium::winit::event::Event::AboutToWait => {
                 window.request_redraw();
-            },
+            }
             _ => (),
         }
     })
-    .unwrap();
+        .unwrap();
 }
