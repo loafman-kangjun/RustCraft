@@ -45,7 +45,7 @@ let view = cgmath::Matrix4::look_at_rh(
                 }
                 glium::winit::event::WindowEvent::RedrawRequested => {
                     let mut target = display.draw();
-                    target.clear_color(0.0, 0.0, 1.0, 1.0);
+                    target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
                     let model = cgmath::Matrix4::from_angle_y(cgmath::Deg(rotation_angle));
                     let uniforms = uniform! {
                         tex: &texture,
