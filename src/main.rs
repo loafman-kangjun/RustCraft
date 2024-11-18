@@ -24,7 +24,6 @@ fn main() {
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
     let vertex_buffer = glium::VertexBuffer::new(&display, &CUBE).unwrap();
 
-    let perspective = cgmath::perspective(cgmath::Deg(45.0), 1.0, 0.1, 100.0);
     let view = cgmath::Matrix4::look_at_rh(
         cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
         cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
@@ -34,7 +33,7 @@ fn main() {
     let draw_params = glium::DrawParameters {
         depth: glium::Depth {
             test: glium::draw_parameters::DepthTest::IfLess, // 如果当前像素比已有深度更近，则绘制
-            write: true, // 写入深度缓冲区
+            write: true,                                     // 写入深度缓冲区
             ..Default::default()
         },
         ..Default::default()
@@ -53,6 +52,10 @@ fn main() {
                 glium::winit::event::WindowEvent::RedrawRequested => {
                     let mut target = display.draw();
                     target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
+                    let window_size = window.inner_size();
+                    let aspect_ratio = window_size.width as f32 / window_size.height as f32;
+                    let perspective =
+                        cgmath::perspective(cgmath::Deg(45.0), aspect_ratio, 0.1, 100.0);
                     let model = cgmath::Matrix4::from_angle_y(cgmath::Deg(rotation_angle));
                     let uniforms = uniform! {
                         tex: &texture,
@@ -62,18 +65,13 @@ fn main() {
                     };
 
                     target
-                        .draw(
-                            &vertex_buffer,
-                            &indices,
-                            &program,
-                            &uniforms,
-                             &draw_params
-                        )
+                        .draw(&vertex_buffer, &indices, &program, &uniforms, &draw_params)
                         .unwrap();
                     target.finish().unwrap();
                 }
                 glium::winit::event::WindowEvent::Resized(window_size) => {
                     display.resize(window_size.into());
+                    window.request_redraw();
                 }
                 _ => (),
             },
