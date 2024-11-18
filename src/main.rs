@@ -31,6 +31,15 @@ fn main() {
         cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
     );
 
+    let draw_params = glium::DrawParameters {
+        depth: glium::Depth {
+            test: glium::draw_parameters::DepthTest::IfLess, // 如果当前像素比已有深度更近，则绘制
+            write: true, // 写入深度缓冲区
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
     // 加载着色器文件
     let program = shader_pro(&display);
 
@@ -58,7 +67,7 @@ fn main() {
                             &indices,
                             &program,
                             &uniforms,
-                            &Default::default(),
+                             &draw_params
                         )
                         .unwrap();
                     target.finish().unwrap();
