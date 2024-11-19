@@ -24,14 +24,6 @@ fn main() {
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
     let vertex_buffer = glium::VertexBuffer::new(&display, &CUBE).unwrap();
 
-    // let mut view = cgmath::Matrix4::look_at_rh(
-    //     cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
-    //     cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
-    //     cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
-    // );
-
-    // let view = camera.get_view_matrix();
-
     let draw_params = glium::DrawParameters {
         depth: glium::Depth {
             test: glium::draw_parameters::DepthTest::IfLess, // 如果当前像素比已有深度更近，则绘制
@@ -43,9 +35,9 @@ fn main() {
 
     window.set_cursor_visible(false);
 
-    window
-        .set_cursor_grab(glium::winit::window::CursorGrabMode::Confined)
-        .unwrap();
+    // window
+    //     .set_cursor_grab(glium::winit::window::CursorGrabMode::Confined)
+    //     .unwrap();
 
     struct Camera {
         position: cgmath::Point3<f32>,
@@ -68,21 +60,23 @@ fn main() {
                 y: self.pitch.sin(),
                 z: self.yaw.sin() * self.pitch.cos(),
             };
-            let target = self.position + forward;
-            let up = cgmath::Vector3::unit_y();
-            cgmath::Matrix4::look_at_rh(self.position, target, up);
-            cgmath::Matrix4::look_at_rh(
-                    cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
-                    cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
-                    cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
-                )
+            let target = cgmath::Point3::new(0.0, 0.0, 0.0) + forward;
+            let up = cgmath::Vector3::new(0.0, 1.0, 0.0);
+            println!("{:?}", target);
+            cgmath::Matrix4::look_at_rh(self.position, target, up)
+           
+            // cgmath::Matrix4::look_at_rh(
+            //     cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
+            //     cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
+            //     cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
+            // )
         }
     }
 
     // 加载着色器文件
     let program = shader_pro(&display);
 
-    let mut camera = Camera::new(cgmath::Point3::new(0.0, 0.0, 3.0), 0.0, 0.0);
+    let mut camera = Camera::new(cgmath::Point3::new(1.5, 1.5, 1.5), 0.0, 0.0);
     let mut last_mouse_position = glium::winit::dpi::PhysicalPosition::new(400.0, 300.0);
 
     #[allow(deprecated)]
@@ -118,7 +112,6 @@ fn main() {
                         cgmath::perspective(cgmath::Deg(45.0), aspect_ratio, 0.1, 100.0);
                     let model = cgmath::Matrix4::from_angle_y(cgmath::Deg(rotation_angle));
                     let view = camera.get_view_matrix();
-                    println!("{:?}", view);
                     let uniforms = uniform! {
                         tex: &texture,
                         perspective: Into::<[[f32; 4]; 4]>::into(perspective),
