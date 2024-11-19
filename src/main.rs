@@ -24,11 +24,13 @@ fn main() {
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
     let vertex_buffer = glium::VertexBuffer::new(&display, &CUBE).unwrap();
 
-    let view = cgmath::Matrix4::look_at_rh(
-        cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
-        cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
-        cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
-    );
+    // let mut view = cgmath::Matrix4::look_at_rh(
+    //     cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
+    //     cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
+    //     cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
+    // );
+
+    // let view = camera.get_view_matrix();
 
     let draw_params = glium::DrawParameters {
         depth: glium::Depth {
@@ -39,8 +41,49 @@ fn main() {
         ..Default::default()
     };
 
+    window.set_cursor_visible(false);
+
+    window
+        .set_cursor_grab(glium::winit::window::CursorGrabMode::Confined)
+        .unwrap();
+
+    struct Camera {
+        position: cgmath::Point3<f32>,
+        yaw: f32,   // 水平方向
+        pitch: f32, // 垂直方向
+    }
+
+    impl Camera {
+        fn new(position: cgmath::Point3<f32>, yaw: f32, pitch: f32) -> Self {
+            Camera {
+                position,
+                yaw,
+                pitch,
+            }
+        }
+
+        fn get_view_matrix(&self) -> cgmath::Matrix4<f32> {
+            let forward = cgmath::Vector3 {
+                x: self.yaw.cos() * self.pitch.cos(),
+                y: self.pitch.sin(),
+                z: self.yaw.sin() * self.pitch.cos(),
+            };
+            let target = self.position + forward;
+            let up = cgmath::Vector3::unit_y();
+            cgmath::Matrix4::look_at_rh(self.position, target, up);
+            cgmath::Matrix4::look_at_rh(
+                    cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
+                    cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
+                    cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
+                )
+        }
+    }
+
     // 加载着色器文件
     let program = shader_pro(&display);
+
+    let mut camera = Camera::new(cgmath::Point3::new(0.0, 0.0, 3.0), 0.0, 0.0);
+    let mut last_mouse_position = glium::winit::dpi::PhysicalPosition::new(400.0, 300.0);
 
     #[allow(deprecated)]
     event_loop
@@ -48,6 +91,23 @@ fn main() {
             glium::winit::event::Event::WindowEvent { event, .. } => match event {
                 glium::winit::event::WindowEvent::CloseRequested => {
                     window_target.exit();
+                }
+                glium::winit::event::WindowEvent::CursorMoved { position, .. } => {
+                    let delta_x = position.x as f32 - last_mouse_position.x as f32;
+                    let delta_y = position.y as f32 - last_mouse_position.y as f32;
+
+                    // 调整摄像头方向
+                    let sensitivity = 0.002;
+                    camera.yaw += delta_x * sensitivity;
+                    camera.pitch -= delta_y * sensitivity;
+
+                    // 限制 pitch 范围
+                    camera.pitch = camera.pitch.clamp(
+                        -std::f32::consts::FRAC_PI_2 + 0.1,
+                        std::f32::consts::FRAC_PI_2 - 0.1,
+                    );
+
+                    last_mouse_position = position;
                 }
                 glium::winit::event::WindowEvent::RedrawRequested => {
                     let mut target = display.draw();
@@ -57,6 +117,8 @@ fn main() {
                     let perspective =
                         cgmath::perspective(cgmath::Deg(45.0), aspect_ratio, 0.1, 100.0);
                     let model = cgmath::Matrix4::from_angle_y(cgmath::Deg(rotation_angle));
+                    let view = camera.get_view_matrix();
+                    println!("{:?}", view);
                     let uniforms = uniform! {
                         tex: &texture,
                         perspective: Into::<[[f32; 4]; 4]>::into(perspective),
