@@ -35,10 +35,6 @@ fn main() {
 
     window.set_cursor_visible(false);
 
-    // window
-    //     .set_cursor_grab(glium::winit::window::CursorGrabMode::Confined)
-    //     .unwrap();
-
     struct Camera {
         position: cgmath::Point3<f32>,
         yaw: f32,   // 水平方向
@@ -64,12 +60,6 @@ fn main() {
             let up = cgmath::Vector3::new(0.0, 1.0, 0.0);
             println!("{:?}", target);
             cgmath::Matrix4::look_at_rh(self.position, target, up)
-           
-            // cgmath::Matrix4::look_at_rh(
-            //     cgmath::Point3::new(1.5, 1.5, 1.5),  // 摄像机位置
-            //     cgmath::Point3::new(0.0, 0.0, 0.0),  // 目标
-            //     cgmath::Vector3::new(0.0, 1.0, 0.0), // 上方向
-            // )
         }
     }
 
