@@ -26,8 +26,8 @@ fn main() {
 
     let draw_params = glium::DrawParameters {
         depth: glium::Depth {
-            test: glium::draw_parameters::DepthTest::IfLess, // 如果当前像素比已有深度更近，则绘制
-            write: true,                                     // 写入深度缓冲区
+            test: glium::draw_parameters::DepthTest::IfLess,
+            write: true,
             ..Default::default()
         },
         ..Default::default()
