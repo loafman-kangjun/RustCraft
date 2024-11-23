@@ -2,18 +2,15 @@ extern crate gl;
 
 use gl::types::*;
 use std::ffi::CString;
-use std::fs;
-use std::path::Path;
 
+const VER_SHADER_SOURCE: &str= include_str!("../shaders/vertex_shader.glsl");
+const FRA_SHADER_SOURCE: &str = include_str!("../shaders/fragment_shader.glsl");
 /// 初始化 OpenGL
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
 
-    let vertex_shader_src = load_shader_code("src/shaders/vertex_shader.glsl");
-    let fragment_shader_src = load_shader_code("src/shaders/fragment_shader.glsl");
-
-    let vertex_shader = compile_shader(&vertex_shader_src, gl::VERTEX_SHADER);
-    let fragment_shader = compile_shader(&fragment_shader_src, gl::FRAGMENT_SHADER);
+    let vertex_shader = compile_shader(&VER_SHADER_SOURCE, gl::VERTEX_SHADER);
+    let fragment_shader = compile_shader(&FRA_SHADER_SOURCE, gl::FRAGMENT_SHADER);
 
     let shader_program = link_program(vertex_shader, fragment_shader);
 
@@ -78,15 +75,11 @@ pub fn render_opengl_scene(shader_program: GLuint) {
     }
 }
 
-/// 加载 GLSL 着色器代码
-fn load_shader_code<P: AsRef<Path>>(path: P) -> String {
-    fs::read_to_string(path).expect("Failed to load shader file")
-}
-
 /// 编译着色器
 fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
     let shader = unsafe { gl::CreateShader(shader_type) };
     let c_str = CString::new(source).unwrap();
+    print!("{:?}", c_str);
     unsafe {
         gl::ShaderSource(shader, 1, &c_str.as_ptr(), std::ptr::null());
         gl::CompileShader(shader);
