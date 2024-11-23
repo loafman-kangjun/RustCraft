@@ -1,118 +1,223 @@
 extern crate sdl2;
+extern crate gl;
 
-use sdl2::event::Event;
-use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use std::time::Duration;
-use tokio::task;
+use sdl2::Sdl;
+use gl::types::*;
+use std::ffi::CString;
 
-// 按钮状态
-struct Button {
-    rect: Rect,
-    color: Color,
-    hover_color: Color,
-    label: &'static str,
-    is_hovered: bool,
-}
-
-impl Button {
-    fn new(rect: Rect, color: Color, hover_color: Color, label: &'static str) -> Self {
-        Button {
-            rect,
-            color,
-            hover_color,
-            label,
-            is_hovered: false,
+/// 查找 OpenGL 驱动的索引
+fn find_sdl_gl_driver() -> Option<u32> {
+    for (index, item) in sdl2::render::drivers().enumerate() {
+        if item.name == "opengl" {
+            return Some(index as u32);
         }
     }
-
-    fn draw(&self, canvas: &mut Canvas<Window>, font_color: Color) {
-        let color = if self.is_hovered {
-            self.hover_color
-        } else {
-            self.color
-        };
-        canvas.set_draw_color(color);
-        canvas.fill_rect(self.rect).unwrap();
-        // TODO: 添加文本绘制（需要额外的字体支持库）
-    }
-
-    fn check_hover(&mut self, x: i32, y: i32) {
-        self.is_hovered = self.rect.contains_point((x, y));
-    }
+    None
 }
 
-#[tokio::main]
-async fn main() {
-    // 初始化 SDL2
+/// 初始化 OpenGL 和 SDL2
+fn init_sdl_and_opengl() -> (Sdl, Canvas<Window>) {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
-        .window("Game Start Screen", 800, 600)
-        .position_centered()
+        .window("OpenGL with SDL2 Canvas", 800, 600)
+        .opengl() // 允许 OpenGL 使用
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let canvas = window
+        .into_canvas()
+        .index(find_sdl_gl_driver().unwrap())
+        .build()
+        .unwrap();
 
-    // 定义按钮
-    let mut start_button = Button::new(
-        Rect::new(300, 250, 200, 50),
-        Color::RGB(0, 128, 255),
-        Color::RGB(0, 200, 255),
-        "Start",
-    );
+    (sdl_context, canvas)
+}
 
+/// 加载 OpenGL 着色器
+fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
+    let shader = unsafe { gl::CreateShader(shader_type) };
+    let c_str = CString::new(source).unwrap();
+    unsafe {
+        gl::ShaderSource(shader, 1, &c_str.as_ptr(), std::ptr::null());
+        gl::CompileShader(shader);
+
+        // 检查编译错误
+        let mut success = gl::FALSE as GLint;
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+        if success == gl::FALSE as GLint {
+            let mut info_log = vec![0; 512];
+            gl::GetShaderInfoLog(
+                shader,
+                512,
+                std::ptr::null_mut(),
+                info_log.as_mut_ptr() as *mut _,
+            );
+            panic!(
+                "Shader compilation failed: {}",
+                String::from_utf8_lossy(&info_log)
+            );
+        }
+    }
+    shader
+}
+
+/// 链接 OpenGL 程序
+fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> GLuint {
+    let program = unsafe { gl::CreateProgram() };
+    unsafe {
+        gl::AttachShader(program, vertex_shader);
+        gl::AttachShader(program, fragment_shader);
+        gl::LinkProgram(program);
+
+        // 检查链接错误
+        let mut success = gl::FALSE as GLint;
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
+        if success == gl::FALSE as GLint {
+            let mut info_log = vec![0; 512];
+            gl::GetProgramInfoLog(
+                program,
+                512,
+                std::ptr::null_mut(),
+                info_log.as_mut_ptr() as *mut _,
+            );
+            panic!(
+                "Program linking failed: {}",
+                String::from_utf8_lossy(&info_log)
+            );
+        }
+    }
+    program
+}
+
+fn main() {
+    // 初始化 SDL2 和 OpenGL
+    let (sdl_context, mut canvas) = init_sdl_and_opengl();
+
+    // 获取窗口上下文并加载 OpenGL 函数
+    let video_subsystem = sdl_context.video().unwrap();
+    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+
+    // 使用 Canvas 的 OpenGL 上下文
+    canvas.window().gl_set_context_to_current();
+
+    // 定义着色器
+    let vertex_shader_src = r#"
+        #version 330 core
+        layout (location = 0) in vec3 aPos; // 顶点位置
+        layout (location = 1) in vec3 aColor; // 顶点颜色
+        out vec3 vertexColor; // 传递颜色到片段着色器
+        void main() {
+            gl_Position = vec4(aPos, 1.0);
+            vertexColor = aColor;
+        }
+    "#;
+
+    let fragment_shader_src = r#"
+        #version 330 core
+        in vec3 vertexColor; // 从顶点着色器接收颜色
+        out vec4 FragColor;
+        void main() {
+            FragColor = vec4(vertexColor, 1.0);
+        }
+    "#;
+
+    // 编译和链接着色器
+    let vertex_shader = compile_shader(vertex_shader_src, gl::VERTEX_SHADER);
+    let fragment_shader = compile_shader(fragment_shader_src, gl::FRAGMENT_SHADER);
+    let shader_program = link_program(vertex_shader, fragment_shader);
+
+    // 删除着色器
+    unsafe {
+        gl::DeleteShader(vertex_shader);
+        gl::DeleteShader(fragment_shader);
+    }
+
+    // 顶点数据
+    let vertices: [f32; 18] = [
+        // 位置         // 颜色
+        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // 左下角，红色
+        0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // 右下角，绿色
+        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // 顶点，蓝色
+    ];
+
+    // 创建 VAO 和 VBO
+    let (mut vao, mut vbo) = (0, 0);
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut vbo);
+
+        // 绑定 VAO
+        gl::BindVertexArray(vao);
+
+        // 绑定 VBO
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            (vertices.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
+            vertices.as_ptr() as *const _,
+            gl::STATIC_DRAW,
+        );
+
+        // 设置顶点属性
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            6 * std::mem::size_of::<GLfloat>() as GLsizei,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(0);
+
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            6 * std::mem::size_of::<GLfloat>() as GLsizei,
+            (3 * std::mem::size_of::<GLfloat>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(1);
+    }
+
+    // 渲染循环
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut running = true;
-
-    // 异步加载资源任务（模拟）
-    let loading_task = task::spawn(async {
-        println!("Loading resources...");
-        tokio::time::sleep(Duration::from_secs(3)).await;
-        println!("Resources loaded!");
-    });
-
-    while running {
+    'running: loop {
+        // 处理事件
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(sdl2::keyboard::Keycode::Escape),
-                    ..
-                } => {
-                    running = false;
-                }
-                Event::MouseMotion { x, y, .. } => {
-                    start_button.check_hover(x, y);
-                }
-                Event::MouseButtonDown { x, y, .. } => {
-                    if start_button.rect.contains_point((x, y)) {
-                        println!("Start button clicked!");
-                        running = false;
-                    }
-                }
+                sdl2::event::Event::Quit { .. } => break 'running,
                 _ => {}
             }
         }
 
         // 清屏
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
+        unsafe {
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        // 绘制按钮
-        start_button.draw(&mut canvas, Color::RGB(255, 255, 255));
+            // 使用着色器程序
+            gl::UseProgram(shader_program);
 
-        // 显示更新
+            // 绑定 VAO
+            gl::BindVertexArray(vao);
+
+            // 绘制三角形
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }
+
+        // 显示结果
         canvas.present();
-
-        // 模拟帧率控制
-        std::thread::sleep(Duration::from_millis(16));
     }
 
-    // 等待异步任务完成
-    loading_task.await.unwrap();
+    // 清理资源
+    unsafe {
+        gl::DeleteVertexArrays(1, &vao);
+        gl::DeleteBuffers(1, &vbo);
+        gl::DeleteProgram(shader_program);
+    }
 }

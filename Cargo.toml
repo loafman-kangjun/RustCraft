@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+gl = "0.14"
 
 [dependencies.sdl2]
 version = "0.37"
+features = ["bundled"]
