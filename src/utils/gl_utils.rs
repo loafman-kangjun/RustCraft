@@ -79,7 +79,6 @@ pub fn render_opengl_scene(shader_program: GLuint) {
 fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
     let shader = unsafe { gl::CreateShader(shader_type) };
     let c_str = CString::new(source).unwrap();
-    print!("{:?}", c_str);
     unsafe {
         gl::ShaderSource(shader, 1, &c_str.as_ptr(), std::ptr::null());
         gl::CompileShader(shader);
