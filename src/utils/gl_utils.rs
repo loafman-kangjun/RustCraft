@@ -3,7 +3,7 @@ extern crate gl;
 use gl::types::*;
 use std::ffi::CString;
 
-const VER_SHADER_SOURCE: &str= include_str!("../shaders/vertex_shader.glsl");
+const VER_SHADER_SOURCE: &str = include_str!("../shaders/vertex_shader.glsl");
 const FRA_SHADER_SOURCE: &str = include_str!("../shaders/fragment_shader.glsl");
 /// 初始化 OpenGL
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
@@ -34,9 +34,7 @@ pub fn find_sdl_gl_driver() -> Option<u32> {
 /// 渲染 OpenGL 场景
 pub fn render_opengl_scene(shader_program: GLuint) {
     let vertices: [f32; 18] = [
-        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
-        0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
-        0.0, 0.5, 0.0, 0.0, 0.0, 1.0,
+        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 1.0,
     ];
 
     let (mut vao, mut vbo) = (0, 0);
@@ -53,7 +51,14 @@ pub fn render_opengl_scene(shader_program: GLuint) {
             gl::STATIC_DRAW,
         );
 
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 6 * std::mem::size_of::<f32>() as GLsizei, std::ptr::null());
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            6 * std::mem::size_of::<f32>() as GLsizei,
+            std::ptr::null(),
+        );
         gl::EnableVertexAttribArray(0);
 
         gl::VertexAttribPointer(
@@ -93,7 +98,10 @@ fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
                 std::ptr::null_mut(),
                 info_log.as_mut_ptr() as *mut _,
             );
-            panic!("Shader compilation failed: {}", String::from_utf8_lossy(&info_log));
+            panic!(
+                "Shader compilation failed: {}",
+                String::from_utf8_lossy(&info_log)
+            );
         }
     }
     shader
@@ -117,7 +125,10 @@ fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> GLuint {
                 std::ptr::null_mut(),
                 info_log.as_mut_ptr() as *mut _,
             );
-            panic!("Program linking failed: {}", String::from_utf8_lossy(&info_log));
+            panic!(
+                "Program linking failed: {}",
+                String::from_utf8_lossy(&info_log)
+            );
         }
     }
     program
