@@ -2,13 +2,12 @@ extern crate gl;
 
 use freetype::Library;
 use gl::types::*;
+use std::cmp::min;
 use std::collections::HashMap;
 use std::ffi::CString;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
-// const VER_SHADER_SOURCE: &str = include_str!("../shaders/vertex_shader.glsl");
-// const FRA_SHADER_SOURCE: &str = include_str!("../shaders/fragment_shader.glsl");
 /// 初始化 OpenGL
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -31,14 +30,40 @@ pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
         out vec4 FragColor;
         uniform sampler2D textTexture;
         void main() {
-            vec4 sampled = vec4(1.0, 1.0, 1.0, texture(textTexture, TexCoords).r);
-            FragColor = sampled;
+            float alpha = texture(textTexture, TexCoords).r;
+            FragColor = vec4(1.0, 1.0, 1.0, alpha);
         }
     "#;
 
     let vertex_shader = compile_shader(vertex_shader_source, gl::VERTEX_SHADER);
+    validate_shader(vertex_shader, "顶点");
+    
     let fragment_shader = compile_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
+    validate_shader(fragment_shader, "片段");
+
     let shader_program = link_program(vertex_shader, fragment_shader);
+    
+    // 验证着色器程序
+    unsafe {
+        gl::ValidateProgram(shader_program);
+        let mut validate_status = gl::FALSE as GLint;
+        gl::GetProgramiv(shader_program, gl::VALIDATE_STATUS, &mut validate_status);
+        println!("着色器程序验证状态: {}", validate_status);
+
+        let mut log_length = 0;
+        gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut log_length);
+        if log_length > 0 {
+            let mut info_log = vec![0u8; log_length as usize];
+            gl::GetProgramInfoLog(
+                shader_program,
+                log_length,
+                std::ptr::null_mut(),
+                info_log.as_mut_ptr() as *mut GLchar
+            );
+            println!("程序验证日志: {}", 
+                String::from_utf8_lossy(&info_log));
+        }
+    }
 
     unsafe {
         gl::DeleteShader(vertex_shader);
@@ -56,55 +81,6 @@ pub fn find_sdl_gl_driver() -> Option<u32> {
     }
     None
 }
-
-/// 渲染 OpenGL 场景
-// pub fn render_opengl_scene(shader_program: GLuint) {
-//     let vertices: [f32; 18] = [
-//         -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 1.0,
-//     ];
-
-//     let (mut vao, mut vbo) = (0, 0);
-//     unsafe {
-//         gl::GenVertexArrays(1, &mut vao);
-//         gl::GenBuffers(1, &mut vbo);
-
-//         gl::BindVertexArray(vao);
-//         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-//         gl::BufferData(
-//             gl::ARRAY_BUFFER,
-//             (vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr,
-//             vertices.as_ptr() as *const _,
-//             gl::STATIC_DRAW,
-//         );
-
-//         gl::VertexAttribPointer(
-//             0,
-//             3,
-//             gl::FLOAT,
-//             gl::FALSE,
-//             6 * std::mem::size_of::<f32>() as GLsizei,
-//             std::ptr::null(),
-//         );
-//         gl::EnableVertexAttribArray(0);
-
-//         gl::VertexAttribPointer(
-//             1,
-//             3,
-//             gl::FLOAT,
-//             gl::FALSE,
-//             6 * std::mem::size_of::<f32>() as GLsizei,
-//             (3 * std::mem::size_of::<f32>()) as *const _,
-//         );
-//         gl::EnableVertexAttribArray(1);
-
-//         gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-//         gl::Clear(gl::COLOR_BUFFER_BIT);
-
-//         gl::UseProgram(shader_program);
-//         gl::BindVertexArray(vao);
-//         gl::DrawArrays(gl::TRIANGLES, 0, 3);
-//     }
-// }
 
 /// 编译着色器
 fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
@@ -216,12 +192,22 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     let mut texture = 0;
     unsafe {
         gl::GenTextures(1, &mut texture);
+        println!("生成的纹理ID: {}", texture);
+        
         gl::BindTexture(gl::TEXTURE_2D, texture);
-
-        // 打印纹理数据
-        println!("纹理信息:");
-        println!("纹理ID: {}", texture);
-        println!("纹理大小: {}x{}", bitmap.width(), bitmap.rows());
+        
+        // 在上传纹理数据前检查bitmap数据
+        let buffer = bitmap.buffer();
+        println!("位图数据大小: {}", buffer.len());
+        println!("位图维度: {}x{}", bitmap.width(), bitmap.rows());
+        println!("位图pitch: {}", bitmap.pitch());
+        
+        // 检查buffer中的一些值
+        println!("位图数据样本:");
+        for i in 0..min(10, buffer.len()) {
+            print!("{} ", buffer[i]);
+        }
+        println!();
 
         gl::TexImage2D(
             gl::TEXTURE_2D,
@@ -232,13 +218,13 @@ pub async fn init_freetype() -> HashMap<char, Character> {
             0,
             gl::RED,
             gl::UNSIGNED_BYTE,
-            bitmap.buffer().as_ptr() as *const _,
+            buffer.as_ptr() as *const _,
         );
 
-        // 检查是否有OpenGL错误
+        // 检查OpenGL错误
         let error = gl::GetError();
         if error != gl::NO_ERROR {
-            println!("创建纹理时的OpenGL错误: 0x{:X}", error);
+            println!("纹理创建错误: 0x{:X}", error);
         }
 
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -264,69 +250,42 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
     unsafe {
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-
+        
         let character = characters.get(&'A').unwrap();
-
-        // 创建正交投影矩阵
+        
+        // 创建正交投影矩阵 (修改为更合适的范围)
         let window_width = 800.0f32;
         let window_height = 600.0f32;
         let projection = [
-            2.0 / window_width,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            -2.0 / window_height,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            -1.0,
-            0.0,
-            -1.0,
-            1.0,
-            0.0,
-            1.0f32,
+            1.0 / (window_width * 0.5), 0.0, 0.0, 0.0,
+            0.0, 1.0 / (window_height * 0.5), 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            -1.0, -1.0, 0.0, 1.0f32
         ];
 
         let mut vao = 0;
         let mut vbo = 0;
-
+        
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-
-        let x = 100.0f32;
-        let y = 100.0f32;
+        
+        // 修改顶点位置计算
+        let x = 200.0f32;  // 更改位置使其更容易看到
+        let y = 300.0f32;
         let w = character.size.0 as f32;
         let h = character.size.1 as f32;
-
+        
+        // 修改顶点数据，确保正确的纹理坐标
         let vertices: [f32; 24] = [
-            x,
-            y + h,
-            0.0,
-            0.0,
-            x,
-            y,
-            0.0,
-            1.0,
-            x + w,
-            y,
-            1.0,
-            1.0,
-            x,
-            y + h,
-            0.0,
-            0.0,
-            x + w,
-            y,
-            1.0,
-            1.0,
-            x + w,
-            y + h,
-            1.0,
-            0.0,
+            x,     y - h,   0.0, 0.0,  // 左下
+            x + w, y - h,   1.0, 0.0,  // 右下
+            x + w, y,       1.0, 1.0,  // 右上
+
+            x,     y - h,   0.0, 0.0,  // 左下
+            x + w, y,       1.0, 1.0,  // 右上
+            x,     y,       0.0, 1.0   // 左上
         ];
 
         gl::BufferData(
@@ -337,23 +296,57 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         );
 
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(0, 4, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
+        gl::VertexAttribPointer(
+            0,
+            4,
+            gl::FLOAT,
+            gl::FALSE,
+            0,
+            std::ptr::null()
+        );
 
         gl::UseProgram(shader_program);
-
-        let proj_name = CString::new("projection").unwrap();
-        let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
+        
+        // 设置投影矩阵
+        let projection_loc = gl::GetUniformLocation(shader_program, 
+            CString::new("projection").unwrap().as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
+        // 设置纹理
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, character.texture_id);
-        let tex_name = CString::new("textTexture").unwrap();
-        let texture_loc = gl::GetUniformLocation(shader_program, tex_name.as_ptr());
+        let texture_loc = gl::GetUniformLocation(shader_program, 
+            CString::new("textTexture").unwrap().as_ptr());
         gl::Uniform1i(texture_loc, 0);
 
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
 
+        // 清理
         gl::DeleteBuffers(1, &vbo);
         gl::DeleteVertexArrays(1, &vao);
+    }
+}
+
+// 添加一个辅助函数来验证着色器编译状态
+fn validate_shader(shader: GLuint, shader_type: &str) {
+    unsafe {
+        let mut success = gl::FALSE as GLint;
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+        println!("{} 着色器编译状态: {}", shader_type, success);
+
+        let mut log_length = 0;
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut log_length);
+        if log_length > 0 {
+            let mut info_log = vec![0u8; log_length as usize];
+            gl::GetShaderInfoLog(
+                shader,
+                log_length,
+                std::ptr::null_mut(),
+                info_log.as_mut_ptr() as *mut GLchar
+            );
+            println!("{} 着色器日志: {}", 
+                shader_type, 
+                String::from_utf8_lossy(&info_log));
+        }
     }
 }
