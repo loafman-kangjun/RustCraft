@@ -31,7 +31,18 @@ pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
         uniform sampler2D textTexture;
         void main() {
             float alpha = texture(textTexture, TexCoords).r;
-            FragColor = vec4(1.0, 1.0, 1.0, alpha);
+            
+            // 显示纹理坐标的颜色调试
+            vec4 debugColor;
+            if (alpha > 0.5) {
+                debugColor = vec4(1.0, 0.0, 0.0, 1.0);  // 红色表示字形
+            } else if (alpha > 0.0) {
+                debugColor = vec4(0.0, 1.0, 0.0, 1.0);  // 绿色表示边缘
+            } else {
+                debugColor = vec4(0.0, 0.0, 1.0, 0.2);  // 蓝色表示背景
+            }
+            
+            FragColor = debugColor;
         }
     "#;
 
@@ -152,42 +163,15 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     face.set_pixel_sizes(0, 48).unwrap();
 
     let mut characters = HashMap::new();
-
+    
     let c = 'A';
-    face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
-        .unwrap();
+    face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
     let glyph = face.glyph();
     let bitmap = glyph.bitmap();
 
-    // 打印位图信息
     println!("位图信息:");
     println!("宽度: {}, 高度: {}", bitmap.width(), bitmap.rows());
     println!("pitch: {}", bitmap.pitch());
-
-    // 保存位图数据到文件
-    let buffer = bitmap.buffer();
-    let mut file = File::create("bitmap_raw.txt").await.unwrap();
-    for y in 0..bitmap.rows() {
-        for x in 0..bitmap.width() {
-            let idx = y as usize * bitmap.pitch() as usize + x as usize;
-            file.write_all(format!("{:3} ", buffer[idx]).as_bytes())
-                .await
-                .unwrap();
-        }
-        file.write_all(b"\n").await.unwrap();
-    }
-
-    // 保存可视化的ASCII艺术
-    let mut file = File::create("bitmap_visual.txt").await.unwrap();
-    for y in 0..bitmap.rows() {
-        for x in 0..bitmap.width() {
-            let idx = y as i32 * bitmap.pitch() + x as i32;
-            let value = buffer[idx as usize];
-            let char = if value > 128 { '#' } else { '.' };
-            file.write_all(char.to_string().as_bytes()).await.unwrap();
-        }
-        file.write_all(b"\n").await.unwrap();
-    }
 
     let mut texture = 0;
     unsafe {
@@ -209,6 +193,9 @@ pub async fn init_freetype() -> HashMap<char, Character> {
         }
         println!();
 
+        // 设置纹理参数
+        gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+        
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -227,10 +214,18 @@ pub async fn init_freetype() -> HashMap<char, Character> {
             println!("纹理创建错误: 0x{:X}", error);
         }
 
+        // 设置纹理过滤
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        // 验证纹理数据
+        let mut width = 0;
+        let mut height = 0;
+        gl::GetTexLevelParameteriv(gl::TEXTURE_2D, 0, gl::TEXTURE_WIDTH, &mut width);
+        gl::GetTexLevelParameteriv(gl::TEXTURE_2D, 0, gl::TEXTURE_HEIGHT, &mut height);
+        println!("OpenGL纹理尺寸: {}x{}", width, height);
 
         characters.insert(
             c,
@@ -248,21 +243,21 @@ pub async fn init_freetype() -> HashMap<char, Character> {
 
 pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) {
     unsafe {
+        // 设置更暗的背景色以便于观察
+        gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+        
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         
         let character = characters.get(&'A').unwrap();
         
-        // 创建正交投影矩阵 (修改为更合适的范围)
-        let window_width = 800.0f32;
-        let window_height = 600.0f32;
-        let projection = [
-            1.0 / (window_width * 0.5), 0.0, 0.0, 0.0,
-            0.0, 1.0 / (window_height * 0.5), 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            -1.0, -1.0, 0.0, 1.0f32
-        ];
-
+        // 打印字符信息
+        println!("渲染字符 'A':");
+        println!("位置: ({}, {})", 400.0f32, 300.0f32);
+        println!("尺寸: {}x{}", character.size.0, character.size.1);
+        println!("Bearing: ({}, {})", character.bearing.0, character.bearing.1);
+        
         let mut vao = 0;
         let mut vbo = 0;
         
@@ -271,21 +266,28 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         
-        // 修改顶点位置计算
-        let x = 200.0f32;  // 更改位置使其更容易看到
+        // 使用更大的缩放因子
+        let scale = 3.0f32;
+        let x = 400.0f32;
         let y = 300.0f32;
-        let w = character.size.0 as f32;
-        let h = character.size.1 as f32;
+        let w = character.size.0 as f32 * scale;
+        let h = character.size.1 as f32 * scale;
         
-        // 修改顶点数据，确保正确的纹理坐标
+        let x_pos = x + character.bearing.0 as f32 * scale;
+        let y_pos = y - (character.size.1 - character.bearing.1) as f32 * scale;
+        
+        // 打印实际渲染位置
+        println!("实际渲染位置: ({}, {})", x_pos, y_pos);
+        println!("渲染尺寸: {}x{}", w, h);
+        
         let vertices: [f32; 24] = [
-            x,     y - h,   0.0, 0.0,  // 左下
-            x + w, y - h,   1.0, 0.0,  // 右下
-            x + w, y,       1.0, 1.0,  // 右上
-
-            x,     y - h,   0.0, 0.0,  // 左下
-            x + w, y,       1.0, 1.0,  // 右上
-            x,     y,       0.0, 1.0   // 左上
+            x_pos,       y_pos + h,   0.0, 0.0,
+            x_pos,       y_pos,       0.0, 1.0,
+            x_pos + w,   y_pos,       1.0, 1.0,
+            
+            x_pos,       y_pos + h,   0.0, 0.0,
+            x_pos + w,   y_pos,       1.0, 1.0,
+            x_pos + w,   y_pos + h,   1.0, 0.0
         ];
 
         gl::BufferData(
@@ -301,18 +303,24 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
             4,
             gl::FLOAT,
             gl::FALSE,
-            0,
+            4 * std::mem::size_of::<f32>() as GLsizei,
             std::ptr::null()
         );
 
         gl::UseProgram(shader_program);
         
-        // 设置投影矩阵
+        // 使用简化的正交投影矩阵
+        let projection = [
+            2.0 / 800.0, 0.0, 0.0, 0.0,
+            0.0, -2.0 / 600.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            -1.0, 1.0, 0.0, 1.0f32
+        ];
+
         let projection_loc = gl::GetUniformLocation(shader_program, 
             CString::new("projection").unwrap().as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
-        // 设置纹理
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, character.texture_id);
         let texture_loc = gl::GetUniformLocation(shader_program, 
@@ -321,7 +329,12 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
 
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
 
-        // 清理
+        // 检查渲染错误
+        let error = gl::GetError();
+        if error != gl::NO_ERROR {
+            println!("渲染错误: 0x{:X}", error);
+        }
+
         gl::DeleteBuffers(1, &vbo);
         gl::DeleteVertexArrays(1, &vao);
     }
