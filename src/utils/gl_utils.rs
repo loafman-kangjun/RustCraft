@@ -2,9 +2,9 @@ extern crate gl;
 
 use freetype::Library;
 use gl::types::*;
-use tokio::fs::File;
 use std::collections::HashMap;
 use std::ffi::CString;
+use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
 // const VER_SHADER_SOURCE: &str = include_str!("../shaders/vertex_shader.glsl");
@@ -176,9 +176,10 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     face.set_pixel_sizes(0, 48).unwrap();
 
     let mut characters = HashMap::new();
-    
+
     let c = 'A';
-    face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
+    face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
+        .unwrap();
     let glyph = face.glyph();
     let bitmap = glyph.bitmap();
 
@@ -186,14 +187,16 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     println!("位图信息:");
     println!("宽度: {}, 高度: {}", bitmap.width(), bitmap.rows());
     println!("pitch: {}", bitmap.pitch());
-    
+
     // 保存位图数据到文件
     let buffer = bitmap.buffer();
     let mut file = File::create("bitmap_raw.txt").await.unwrap();
     for y in 0..bitmap.rows() {
         for x in 0..bitmap.width() {
             let idx = y as usize * bitmap.pitch() as usize + x as usize;
-            file.write_all(format!("{:3} ", buffer[idx]).as_bytes()).await.unwrap();
+            file.write_all(format!("{:3} ", buffer[idx]).as_bytes())
+                .await
+                .unwrap();
         }
         file.write_all(b"\n").await.unwrap();
     }
@@ -214,12 +217,12 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     unsafe {
         gl::GenTextures(1, &mut texture);
         gl::BindTexture(gl::TEXTURE_2D, texture);
-        
+
         // 打印纹理数据
         println!("纹理信息:");
         println!("纹理ID: {}", texture);
         println!("纹理大小: {}x{}", bitmap.width(), bitmap.rows());
-        
+
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -338,16 +341,14 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
 
         gl::UseProgram(shader_program);
 
-        let projection_loc =
-            gl::GetUniformLocation(shader_program, CString::new("projection").unwrap().as_ptr());
+        let proj_name = CString::new("projection").unwrap();
+        let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, character.texture_id);
-        let texture_loc = gl::GetUniformLocation(
-            shader_program,
-            CString::new("textTexture").unwrap().as_ptr(),
-        );
+        let tex_name = CString::new("textTexture").unwrap();
+        let texture_loc = gl::GetUniformLocation(shader_program, tex_name.as_ptr());
         gl::Uniform1i(texture_loc, 0);
 
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
