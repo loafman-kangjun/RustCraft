@@ -5,9 +5,12 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-freetype = "0.7"
+freetype-rs = { version = "*", features = ["bundled"] }
 gl = "0.14"
 
 [dependencies.sdl2]
 version = "0.37"
 features = ["bundled", "ttf"]
+
+[package.metadata.winres]
+windows_subsystem = "windows"

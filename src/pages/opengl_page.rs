@@ -1,4 +1,4 @@
-use crate::utils::gl_utils::{init_opengl, render_opengl_scene};
+use crate::utils::gl_utils::{init_opengl, init_freetype, render_text};
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::EventPump;
@@ -11,6 +11,9 @@ pub fn run_opengl_page(
     event_pump: &mut EventPump,
 ) {
     let shader_program = init_opengl(video_subsystem);
+    
+    // 初始化FreeType并加载字符
+    let characters = init_freetype();
 
     let mut last_time = Instant::now();
     let mut frame_count = 0;
@@ -33,7 +36,18 @@ pub fn run_opengl_page(
             }
         }
 
-        render_opengl_scene(shader_program);
+        // 清除屏幕
+        unsafe {
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
+        // 注释掉三角形渲染
+        // render_opengl_scene(shader_program);
+        
+        // 只渲染文字
+        render_text(shader_program, &characters);
+        
         canvas.present();
     }
 }
