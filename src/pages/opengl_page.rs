@@ -5,7 +5,7 @@ use sdl2::EventPump;
 use sdl2::VideoSubsystem;
 use std::time::{Duration, Instant};
 
-pub fn run_opengl_page(
+pub async fn run_opengl_page(
     video_subsystem: &VideoSubsystem,
     canvas: &mut Canvas<Window>,
     event_pump: &mut EventPump,
@@ -13,7 +13,7 @@ pub fn run_opengl_page(
     let shader_program = init_opengl(video_subsystem);
     
     // 初始化FreeType并加载字符
-    let characters = init_freetype();
+    let characters = init_freetype().await;
 
     let mut last_time = Instant::now();
     let mut frame_count = 0;

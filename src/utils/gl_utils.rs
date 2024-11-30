@@ -2,8 +2,10 @@ extern crate gl;
 
 use freetype::Library;
 use gl::types::*;
+use tokio::fs::File;
 use std::collections::HashMap;
 use std::ffi::CString;
+use tokio::io::AsyncWriteExt;
 
 // const VER_SHADER_SOURCE: &str = include_str!("../shaders/vertex_shader.glsl");
 // const FRA_SHADER_SOURCE: &str = include_str!("../shaders/fragment_shader.glsl");
@@ -168,24 +170,56 @@ pub struct Character {
     pub advance: i32,
 }
 
-pub fn init_freetype() -> HashMap<char, Character> {
+pub async fn init_freetype() -> HashMap<char, Character> {
     let lib = Library::init().unwrap();
     let face = lib.new_face("./a.ttf", 0).unwrap();
     face.set_pixel_sizes(0, 48).unwrap();
 
     let mut characters = HashMap::new();
-
-    // 只加载字符'A'
+    
     let c = 'A';
-    face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
-        .unwrap();
+    face.load_char(c as usize, freetype::face::LoadFlag::RENDER).unwrap();
     let glyph = face.glyph();
     let bitmap = glyph.bitmap();
+
+    // 打印位图信息
+    println!("位图信息:");
+    println!("宽度: {}, 高度: {}", bitmap.width(), bitmap.rows());
+    println!("pitch: {}", bitmap.pitch());
+    
+    // 保存位图数据到文件
+    let buffer = bitmap.buffer();
+    let mut file = File::create("bitmap_raw.txt").await.unwrap();
+    for y in 0..bitmap.rows() {
+        for x in 0..bitmap.width() {
+            let idx = y as usize * bitmap.pitch() as usize + x as usize;
+            file.write_all(format!("{:3} ", buffer[idx]).as_bytes()).await.unwrap();
+        }
+        file.write_all(b"\n").await.unwrap();
+    }
+
+    // 保存可视化的ASCII艺术
+    let mut file = File::create("bitmap_visual.txt").await.unwrap();
+    for y in 0..bitmap.rows() {
+        for x in 0..bitmap.width() {
+            let idx = y as i32 * bitmap.pitch() + x as i32;
+            let value = buffer[idx as usize];
+            let char = if value > 128 { '#' } else { '.' };
+            file.write_all(char.to_string().as_bytes()).await.unwrap();
+        }
+        file.write_all(b"\n").await.unwrap();
+    }
 
     let mut texture = 0;
     unsafe {
         gl::GenTextures(1, &mut texture);
         gl::BindTexture(gl::TEXTURE_2D, texture);
+        
+        // 打印纹理数据
+        println!("纹理信息:");
+        println!("纹理ID: {}", texture);
+        println!("纹理大小: {}x{}", bitmap.width(), bitmap.rows());
+        
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -197,6 +231,12 @@ pub fn init_freetype() -> HashMap<char, Character> {
             gl::UNSIGNED_BYTE,
             bitmap.buffer().as_ptr() as *const _,
         );
+
+        // 检查是否有OpenGL错误
+        let error = gl::GetError();
+        if error != gl::NO_ERROR {
+            println!("创建纹理时的OpenGL错误: 0x{:X}", error);
+        }
 
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);

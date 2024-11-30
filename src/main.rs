@@ -6,7 +6,8 @@ use pages::opengl_page::run_opengl_page;
 use pages::start_screen::show_start_screen;
 use utils::gl_utils::find_sdl_gl_driver;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -25,7 +26,7 @@ fn main() {
 
     // 显示初始页面并根据用户选择进入对应页面
     match show_start_screen(&mut canvas, &mut event_pump) {
-        Some("opengl") => run_opengl_page(&video_subsystem, &mut canvas, &mut event_pump),
+        Some("opengl") => run_opengl_page(&video_subsystem, &mut canvas, &mut event_pump).await,
         Some("declaration") => show_declaration_page(&mut canvas, &mut event_pump),
         _ => {
             println!("Exiting...");
