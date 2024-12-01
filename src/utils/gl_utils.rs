@@ -227,16 +227,14 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
             1.0f32,
         ];
 
-        let projection_loc =
-            gl::GetUniformLocation(shader_program, CString::new("projection").unwrap().as_ptr());
+        let proj_name = CString::new("projection").unwrap();
+        let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, character.texture_id);
-        let texture_loc = gl::GetUniformLocation(
-            shader_program,
-            CString::new("textTexture").unwrap().as_ptr(),
-        );
+        let tex_name = CString::new("textTexture").unwrap();
+        let texture_loc = gl::GetUniformLocation(shader_program, tex_name.as_ptr());
         gl::Uniform1i(texture_loc, 0);
 
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
