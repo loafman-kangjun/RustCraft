@@ -1,10 +1,40 @@
 extern crate gl;
 
-use crate::renderloop::structs::Character;
+use crate::renderloop::structs::{Character, QuadGeometry};
 use cgmath::{ortho, Matrix, Point2, Vector2};
 use gl::types::*;
 use std::collections::HashMap;
 use std::ffi::CString;
+
+impl QuadGeometry {
+    fn new(character: &Character, base_pos: Point2<f32>, scale: Vector2<f32>) -> Self {
+        let size = Vector2::new(
+            character.size.0 as f32 * scale.x,
+            character.size.1 as f32 * scale.y,
+        );
+
+        let bearing = Vector2::new(
+            character.bearing.0 as f32,
+            character.bearing.1 as f32
+        );
+
+        let pos = Point2::new(
+            base_pos.x + bearing.x * scale.x,
+            base_pos.y - (character.size.1 as f32 - bearing.y) * scale.y,
+        );
+
+        let vertices = [
+            pos.x,         pos.y + size.y,  0.0, 1.0,
+            pos.x,         pos.y,           0.0, 0.0,
+            pos.x + size.x, pos.y,          1.0, 0.0,
+            pos.x,         pos.y + size.y,  0.0, 1.0,
+            pos.x + size.x, pos.y,          1.0, 0.0,
+            pos.x + size.x, pos.y + size.y, 1.0, 1.0,
+        ];
+
+        Self { vertices }
+    }
+}
 
 pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) {
     unsafe {
@@ -21,34 +51,16 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        let scale = Vector2::new(3.0f32, 3.0f32);
-        let base_pos = Point2::new(400.0f32, 300.0f32);
-
-        let size = Vector2::new(
-            character.size.0 as f32 * scale.x,
-            character.size.1 as f32 * scale.y,
+        let quad = QuadGeometry::new(
+            character,
+            Point2::new(400.0f32, 300.0f32),
+            Vector2::new(3.0f32, 3.0f32)
         );
-
-        let bearing = Vector2::new(character.bearing.0 as f32, character.bearing.1 as f32);
-
-        let pos = Point2::new(
-            base_pos.x + bearing.x * scale.x,
-            base_pos.y - (character.size.1 as f32 - bearing.y) * scale.y,
-        );
-
-        let vertices: [f32; 24] = [
-            pos.x,         pos.y + size.y,  0.0, 1.0,
-            pos.x,         pos.y,           0.0, 0.0,
-            pos.x + size.x, pos.y,          1.0, 0.0,
-            pos.x,         pos.y + size.y,  0.0, 1.0,
-            pos.x + size.x, pos.y,          1.0, 0.0,
-            pos.x + size.x, pos.y + size.y, 1.0, 1.0,
-        ];
 
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr,
-            vertices.as_ptr() as *const _,
+            (quad.vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr,
+            quad.vertices.as_ptr() as *const _,
             gl::STATIC_DRAW,
         );
 
