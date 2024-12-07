@@ -7,6 +7,7 @@ edition = "2021"
 tokio = { version = "1", features = ["full"] }
 freetype-rs = { version = "*", features = ["bundled"] }
 gl = "*"
+cgmath = "*"
 
 [dependencies.sdl2]
 version = "*"

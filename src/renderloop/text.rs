@@ -1,17 +1,15 @@
 extern crate gl;
 
+use crate::renderloop::structs::Character;
+use cgmath::{ortho, Matrix, Point2, Vector2};
 use gl::types::*;
 use std::collections::HashMap;
 use std::ffi::CString;
-use crate::renderloop::structs::Character;
 
 pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) {
     unsafe {
         gl::ClearColor(0.1, 0.1, 0.1, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
-
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
         let character = characters.get(&'A').unwrap();
 
@@ -23,40 +21,28 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        let scale = 3.0f32;
-        let x = 400.0f32;
-        let y = 300.0f32;
-        let w = character.size.0 as f32 * scale;
-        let h = character.size.1 as f32 * scale;
+        let scale = Vector2::new(3.0f32, 3.0f32);
+        let base_pos = Point2::new(400.0f32, 300.0f32);
 
-        let x_pos = x + character.bearing.0 as f32 * scale;
-        let y_pos = y - (character.size.1 - character.bearing.1) as f32 * scale;
+        let size = Vector2::new(
+            character.size.0 as f32 * scale.x,
+            character.size.1 as f32 * scale.y,
+        );
+
+        let bearing = Vector2::new(character.bearing.0 as f32, character.bearing.1 as f32);
+
+        let pos = Point2::new(
+            base_pos.x + bearing.x * scale.x,
+            base_pos.y - (character.size.1 as f32 - bearing.y) * scale.y,
+        );
 
         let vertices: [f32; 24] = [
-            x_pos,
-            y_pos + h,
-            0.0,
-            1.0,
-            x_pos,
-            y_pos,
-            0.0,
-            0.0,
-            x_pos + w,
-            y_pos,
-            1.0,
-            0.0,
-            x_pos,
-            y_pos + h,
-            0.0,
-            1.0,
-            x_pos + w,
-            y_pos,
-            1.0,
-            0.0,
-            x_pos + w,
-            y_pos + h,
-            1.0,
-            1.0,
+            pos.x,         pos.y + size.y,  0.0, 1.0,
+            pos.x,         pos.y,           0.0, 0.0,
+            pos.x + size.x, pos.y,          1.0, 0.0,
+            pos.x,         pos.y + size.y,  0.0, 1.0,
+            pos.x + size.x, pos.y,          1.0, 0.0,
+            pos.x + size.x, pos.y + size.y, 1.0, 1.0,
         ];
 
         gl::BufferData(
@@ -78,24 +64,14 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
 
         gl::UseProgram(shader_program);
 
-        let projection = [
-            2.0 / 800.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            -2.0 / 600.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
-            0.0,
-            -1.0,
-            1.0,
-            0.0,
-            1.0f32,
-        ];
+        let projection = ortho(
+            0.0,   // left
+            800.0, // right
+            0.0,   // bottom
+            600.0, // top
+            -1.0,  // near
+            1.0,   // far
+        );
 
         let proj_name = CString::new("projection").unwrap();
         let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());

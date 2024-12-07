@@ -2,42 +2,14 @@ extern crate gl;
 
 use gl::types::*;
 use std::ffi::CString;
+use crate::renderloop::init::VERTEX_SHADER_SOURCE;
+use crate::renderloop::init::FRAGMENT_SHADER_SOURCE;
 
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
 
-    let vertex_shader_source = r#"
-        #version 330 core
-        layout (location = 0) in vec4 aPos;
-        out vec2 TexCoords;
-        uniform mat4 projection;
-        void main() {
-            gl_Position = projection * vec4(aPos.xy, 0.0, 1.0);
-            TexCoords = aPos.zw;
-        }
-    "#;
-
-    let fragment_shader_source = r#"
-        #version 330 core
-        in vec2 TexCoords;
-        out vec4 FragColor;
-        uniform sampler2D textTexture;
-        void main() {
-            float alpha = texture(textTexture, TexCoords).r;
-            vec4 debugColor;
-            if (alpha > 0.5) {
-                debugColor = vec4(1.0, 0.0, 0.0, 1.0);
-            } else if (alpha > 0.0) {
-                debugColor = vec4(0.0, 1.0, 0.0, 1.0);
-            } else {
-                debugColor = vec4(0.0, 0.0, 1.0, 0.2);
-            }
-            FragColor = debugColor;
-        }
-    "#;
-
-    let vertex_shader = compile_shader(vertex_shader_source, gl::VERTEX_SHADER);
-    let fragment_shader = compile_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
+    let vertex_shader = compile_shader(VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER);
+    let fragment_shader = compile_shader(FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER);
     let shader_program = link_program(vertex_shader, fragment_shader);
 
     unsafe {
