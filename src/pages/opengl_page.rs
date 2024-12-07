@@ -1,4 +1,5 @@
-use crate::utils::gl_utils::{init_freetype, init_opengl, render_text};
+use crate::renderloop::freetype::init_freetype;
+use crate::utils::gl_utils::{init_opengl, render_text};
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::{EventPump, VideoSubsystem};
@@ -9,8 +10,6 @@ pub async fn run_opengl_page(
     event_pump: &mut EventPump,
 ) {
     let shader_program = init_opengl(video_subsystem);
-
-    // 初始化FreeType并加载字符
     let characters = init_freetype().await;
 
     'opengl_loop: loop {

@@ -1,5 +1,5 @@
+use crate::utils::gl_utils::Character;
 use freetype::Library;
-use gl::types::*;
 use std::collections::HashMap;
 
 pub async fn init_freetype() -> HashMap<char, Character> {
