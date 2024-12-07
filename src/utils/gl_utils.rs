@@ -48,7 +48,7 @@ pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     shader_program
 }
 
-pub fn find_sdl_gl_driver() -> Option<u32> {
+pub fn find_gl() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
         if item.name == "opengl" {
             return Some(index as u32);

@@ -5,7 +5,7 @@ mod utils;
 use pages::declaration_page::show_declaration_page;
 use pages::opengl_page::run_opengl_page;
 use pages::start_screen::show_start_screen;
-use utils::gl_utils::find_sdl_gl_driver;
+use utils::gl_utils::find_gl;
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +20,7 @@ async fn main() {
 
     let mut canvas = window
         .into_canvas()
-        .index(find_sdl_gl_driver().unwrap())
+        .index(find_gl().unwrap())
         .build()
         .unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
