@@ -1,11 +1,11 @@
 mod pages;
 mod renderloop;
-mod utils;
+
 
 use pages::declaration_page::show_declaration_page;
 use pages::opengl_page::run_opengl_page;
 use pages::start_screen::show_start_screen;
-use utils::gl_utils::find_gl;
+use renderloop::utils::find_gl;
 
 #[tokio::main]
 async fn main() {

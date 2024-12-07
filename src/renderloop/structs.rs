@@ -1,4 +1,3 @@
-
 use gl::types::GLuint;
 
 pub struct Character {

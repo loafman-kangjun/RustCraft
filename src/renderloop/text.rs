@@ -3,7 +3,7 @@ extern crate gl;
 use gl::types::*;
 use std::collections::HashMap;
 use std::ffi::CString;
-use crate::utils::gl_utils::Character;
+use crate::renderloop::structs::Character;
 
 pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) {
     unsafe {

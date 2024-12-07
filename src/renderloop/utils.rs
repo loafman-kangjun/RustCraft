@@ -76,10 +76,3 @@ fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> GLuint {
         program
     }
 }
-
-pub struct Character {
-    pub texture_id: GLuint,
-    pub size: (i32, i32),
-    pub bearing: (i32, i32),
-    pub advance: i32,
-}

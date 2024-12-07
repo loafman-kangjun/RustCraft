@@ -1,4 +1,4 @@
-use crate::utils::gl_utils::Character;
+use crate::renderloop::structs::Character;
 use freetype::Library;
 use std::collections::HashMap;
 

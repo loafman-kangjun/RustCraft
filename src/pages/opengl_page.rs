@@ -1,6 +1,6 @@
 use crate::renderloop::freetype::init_freetype;
 use crate::renderloop::text::render_text;
-use crate::utils::gl_utils::init_opengl;
+use crate::renderloop::utils::init_opengl;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::{EventPump, VideoSubsystem};
