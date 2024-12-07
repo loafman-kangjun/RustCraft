@@ -24,12 +24,12 @@ impl QuadGeometry {
         );
 
         let vertices = [
-            pos.x,         pos.y + size.y,  0.0, 1.0,
-            pos.x,         pos.y,           0.0, 0.0,
-            pos.x + size.x, pos.y,          1.0, 0.0,
-            pos.x,         pos.y + size.y,  0.0, 1.0,
-            pos.x + size.x, pos.y,          1.0, 0.0,
-            pos.x + size.x, pos.y + size.y, 1.0, 1.0,
+            pos.x,         pos.y + size.y,  0.0, 0.0,
+            pos.x,         pos.y,           0.0, 1.0,
+            pos.x + size.x, pos.y,          1.0, 1.0,
+            pos.x,         pos.y + size.y,  0.0, 0.0,
+            pos.x + size.x, pos.y,          1.0, 1.0,
+            pos.x + size.x, pos.y + size.y, 1.0, 0.0,
         ];
 
         Self { vertices }
@@ -41,7 +41,7 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         gl::ClearColor(0.1, 0.1, 0.1, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        let character = characters.get(&'A').unwrap();
+        let character = characters.get(&'H').unwrap();
 
         let mut vao = 0;
         let mut vbo = 0;
