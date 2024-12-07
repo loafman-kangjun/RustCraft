@@ -1,7 +1,6 @@
 mod pages;
 mod renderloop;
 
-
 use pages::declaration_page::show_declaration_page;
 use pages::opengl_page::run_opengl_page;
 use pages::start_screen::show_start_screen;

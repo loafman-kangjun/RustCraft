@@ -8,7 +8,7 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     face.set_pixel_sizes(0, 48).unwrap();
 
     let mut characters = HashMap::new();
-    
+
     // 定义需要加载的字符
     let chars_to_load: Vec<char> = (0..=9)  // 数字 0-9
         .map(|n| n.to_string().chars().next().unwrap())
@@ -21,7 +21,7 @@ pub async fn init_freetype() -> HashMap<char, Character> {
         // 加载字形
         face.load_char(c as usize, freetype::face::LoadFlag::RENDER)
             .unwrap_or_else(|_| panic!("Failed to load character {}", c));
-            
+
         let glyph = face.glyph();
         let bitmap = glyph.bitmap();
 

@@ -15,7 +15,7 @@ impl QuadGeometry {
 
         let bearing = Vector2::new(
             character.bearing.0 as f32,
-            character.bearing.1 as f32
+            character.bearing.1 as f32,
         );
 
         let pos = Point2::new(
@@ -24,11 +24,11 @@ impl QuadGeometry {
         );
 
         let vertices = [
-            pos.x,         pos.y + size.y,  0.0, 0.0,
-            pos.x,         pos.y,           0.0, 1.0,
-            pos.x + size.x, pos.y,          1.0, 1.0,
-            pos.x,         pos.y + size.y,  0.0, 0.0,
-            pos.x + size.x, pos.y,          1.0, 1.0,
+            pos.x, pos.y + size.y, 0.0, 0.0,
+            pos.x, pos.y, 0.0, 1.0,
+            pos.x + size.x, pos.y, 1.0, 1.0,
+            pos.x, pos.y + size.y, 0.0, 0.0,
+            pos.x + size.x, pos.y, 1.0, 1.0,
             pos.x + size.x, pos.y + size.y, 1.0, 0.0,
         ];
 
@@ -54,7 +54,7 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
         let quad = QuadGeometry::new(
             character,
             Point2::new(400.0f32, 300.0f32),
-            Vector2::new(3.0f32, 3.0f32)
+            Vector2::new(3.0f32, 3.0f32),
         );
 
         gl::BufferData(

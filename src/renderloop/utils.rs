@@ -1,9 +1,9 @@
 extern crate gl;
 
+use crate::renderloop::init::FRAGMENT_SHADER_SOURCE;
+use crate::renderloop::init::VERTEX_SHADER_SOURCE;
 use gl::types::*;
 use std::ffi::CString;
-use crate::renderloop::init::VERTEX_SHADER_SOURCE;
-use crate::renderloop::init::FRAGMENT_SHADER_SOURCE;
 
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -29,7 +29,7 @@ pub fn find_gl() -> Option<u32> {
     None
 }
 
-fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
+pub fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
     let shader = unsafe { gl::CreateShader(shader_type) };
     let c_str = CString::new(source.as_bytes()).unwrap();
     unsafe {
@@ -39,7 +39,7 @@ fn compile_shader(source: &str, shader_type: GLenum) -> GLuint {
     }
 }
 
-fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> GLuint {
+pub fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> GLuint {
     let program = unsafe { gl::CreateProgram() };
     unsafe {
         gl::AttachShader(program, vertex_shader);
