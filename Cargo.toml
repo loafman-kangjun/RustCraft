@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 freetype-rs = { version = "*", features = ["bundled"] }
-gl = "0.14"
+gl = "*"
 
 [dependencies.sdl2]
-version = "0.37"
+version = "*"
 features = ["bundled", "ttf"]
 
 [package.metadata.winres]
