@@ -4,10 +4,10 @@ use crate::renderloop::text::render_text;
 use crate::renderloop::text::render_tr;
 use crate::renderloop::utils::*;
 use gl::types::GLuint;
+use sdl2::keyboard::Keycode;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::{EventPump, VideoSubsystem};
-use sdl2::keyboard::Keycode;
 
 pub(crate) async fn render(
     video_subsystem: &VideoSubsystem,
@@ -24,20 +24,24 @@ pub(crate) async fn render(
         clean_screen();
         text_fbo = render_text(shader_program, &characters);
         let triangle_fbo = render_tr(shader_program_tr);
-        
-        reder_fbo(text_fbo, shader_program_fbo);
+
         for event in event_pump.poll_iter() {
             match event {
                 sdl2::event::Event::Quit { .. } => break 'opengl_loop,
-                sdl2::event::Event::KeyDown { keycode: Some(Keycode::S), .. } => {
-                    // 当按下S键时保存FBO
-                    save_fbo_to_file(text_fbo, 800, 600, "text_fbo.png");
-                    save_fbo_to_file(triangle_fbo, 800, 600, "triangle_fbo.png");
-                    println!("FBOs saved to files!");
+                sdl2::event::Event::KeyDown { keycode, .. } => {
+                    println!("Key pressed: {:?}", keycode);
+                    if let Some(Keycode::S) = keycode {
+                        println!("Attempting to save FBOs...");
+                        save_fbo_to_file(text_fbo, 800, 600, "text_fbo.png");
+                        save_fbo_to_file(triangle_fbo, 800, 600, "triangle_fbo.png");
+                        println!("FBOs saved to files!");
+                    }
                 }
                 _ => {}
             }
         }
+
+        reder_fbo(text_fbo, shader_program_fbo);
         canvas.present();
     }
 }
