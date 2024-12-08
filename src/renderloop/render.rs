@@ -7,7 +7,7 @@ use crate::renderloop::utils::*;
 
 pub(crate) async fn render(video_subsystem:&VideoSubsystem, canvas:&mut Canvas<Window>, event_pump:&mut EventPump) {
     
-    let shader_program = init_opengl(video_subsystem);
+    let (shader_program, shader_program_fbo) = init_opengl(video_subsystem);
     let characters = init_freetype().await;
 
     'opengl_loop: loop {
@@ -18,8 +18,7 @@ pub(crate) async fn render(video_subsystem:&VideoSubsystem, canvas:&mut Canvas<W
         }
         
         clean_screen();
-        render_text(shader_program, &characters);
-
+        render_text(shader_program, shader_program_fbo, &characters);
         canvas.present();
     }
 }

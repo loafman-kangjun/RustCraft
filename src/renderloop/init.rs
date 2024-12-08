@@ -1,14 +1,15 @@
 use gl::types::GLuint;
 use crate::renderloop::utils::*;
 use crate::renderloop::freetype::*;
-use crate::renderloop::utils::init_opengl;
 
 pub(crate) static VERTEX_SHADER_SOURCE: &str = include_str!("./shaders/text_vertex.glsl");
 pub(crate) static FRAGMENT_SHADER_SOURCE: &str = include_str!("./shaders/text_fragment.glsl");
+pub(crate) static VERTEX_FBO_SHADER_SOURCE: &str = include_str!("./shaders/vertex_fbo.glsl");
+pub(crate) static FRAGMENT_FBO_SHADER_SOURCE: &str = include_str!("./shaders/fragment_fbo.glsl");
 
-// fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) {
-//     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
-// }
+fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) {
+    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+}
 
 // fn compile_text_shader() -> GLuint {
 //     let vertex_shader = compile_shader(VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER);
