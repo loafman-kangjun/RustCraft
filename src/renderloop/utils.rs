@@ -20,6 +20,13 @@ pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> GLuint {
     shader_program
 }
 
+pub fn clean_screen() {
+    unsafe {
+        gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+    }
+}
+
 pub fn find_gl() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
         if item.name == "opengl" {

@@ -37,25 +37,35 @@ impl QuadGeometry {
 }
 
 pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) {
+
+    let character = characters.get(&'H').unwrap();
+
+    let mut vao = 0;
+    let mut vbo = 0;
+
+    let quad = QuadGeometry::new(
+        character,
+        Point2::new(400.0f32, 300.0f32),
+        Vector2::new(3.0f32, 3.0f32),
+    );
+
+    let projection = ortho(
+        0.0,   // left
+        800.0, // right
+        0.0,   // bottom
+        600.0, // top
+        -1.0,  // near
+        1.0,   // far
+    );
+
+    let tex_name = CString::new("textTexture").unwrap();
+
     unsafe {
-        gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-        gl::Clear(gl::COLOR_BUFFER_BIT);
-
-        let character = characters.get(&'H').unwrap();
-
-        let mut vao = 0;
-        let mut vbo = 0;
-
+        
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-
-        let quad = QuadGeometry::new(
-            character,
-            Point2::new(400.0f32, 300.0f32),
-            Vector2::new(3.0f32, 3.0f32),
-        );
 
         gl::BufferData(
             gl::ARRAY_BUFFER,
@@ -76,22 +86,12 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
 
         gl::UseProgram(shader_program);
 
-        let projection = ortho(
-            0.0,   // left
-            800.0, // right
-            0.0,   // bottom
-            600.0, // top
-            -1.0,  // near
-            1.0,   // far
-        );
-
         let proj_name = CString::new("projection").unwrap();
         let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
         gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, character.texture_id);
-        let tex_name = CString::new("textTexture").unwrap();
         let texture_loc = gl::GetUniformLocation(shader_program, tex_name.as_ptr());
         gl::Uniform1i(texture_loc, 0);
 
