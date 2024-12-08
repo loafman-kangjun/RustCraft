@@ -153,32 +153,45 @@ pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>
 }
 
 pub fn render_tr(shader_program: GLuint) -> GLuint {
-    let mut triangle_fbo = 0;
-    let mut triangle_fbo_texture = 0;
-    let mut triangle_vao = 0;
-    let mut triangle_vbo = 0;
+    let mut textfbo = 0;
+    let mut textfbo_texture = 0;
+    let mut vao = 0;
+    let mut vbo = 0;
 
-    // 三角形顶点数据
-    let triangle_vertices: [f32; 9] = [
-        -0.5, -0.5, 0.0,  // 左下
-         0.5, -0.5, 0.0,  // 右下
-         0.0,  0.5, 0.0,  // 顶部
+    // 三角形的顶点数据（位置 + 颜色）
+    let triangle_vertices: [f32; 18] = [
+        // 位置            // 颜色 (RGB)
+        -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,  // 左下，红色
+         0.5, -0.5, 0.0,    0.0, 1.0, 0.0,  // 右下，绿色
+         0.0,  0.5, 0.0,    0.0, 0.0, 1.0,  // 顶部，蓝色
     ];
 
+    let projection = ortho(
+        0.0,   // left
+        800.0, // right
+        0.0,   // bottom
+        600.0, // top
+        -1.0,  // near
+        1.0,   // far
+    );
+
+    let tex_name = CString::new("textTexture").unwrap();
+    let proj_name = CString::new("projection").unwrap();
+
     unsafe {
-        // 创建并设置三角形FBO
-        gl::GenFramebuffers(1, &mut triangle_fbo);
-        gl::BindFramebuffer(gl::FRAMEBUFFER, triangle_fbo);
+        // 创建并绑定FBO
+        gl::GenFramebuffers(1, &mut textfbo);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, textfbo);
 
         // 创建FBO纹理
-        gl::GenTextures(1, &mut triangle_fbo_texture);
-        gl::BindTexture(gl::TEXTURE_2D, triangle_fbo_texture);
+        gl::GenTextures(1, &mut textfbo_texture);
+        gl::BindTexture(gl::TEXTURE_2D, textfbo_texture);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
             gl::RGBA as i32,
             800,
-            600,
+            600, // 使用窗口大小
             0,
             gl::RGBA,
             gl::UNSIGNED_BYTE,
@@ -187,24 +200,15 @@ pub fn render_tr(shader_program: GLuint) -> GLuint {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
 
-        // 将纹理附加到FBO
-        gl::FramebufferTexture2D(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0,
-            gl::TEXTURE_2D,
-            triangle_fbo_texture,
-            0,
-        );
-
         // 清除FBO
-        gl::ClearColor(0.0, 0.0, 0.0, 0.0);
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
         // 设置VAO和VBO
-        gl::GenVertexArrays(1, &mut triangle_vao);
-        gl::GenBuffers(1, &mut triangle_vbo);
-        gl::BindVertexArray(triangle_vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, triangle_vbo);
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut vbo);
+        gl::BindVertexArray(vao);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
             (triangle_vertices.len() * std::mem::size_of::<f32>()) as GLsizeiptr,
@@ -212,40 +216,48 @@ pub fn render_tr(shader_program: GLuint) -> GLuint {
             gl::STATIC_DRAW,
         );
 
-        // 设置顶点属性
+        // 设置顶点属性 (位置)
+        gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
-            0,
-            3,
+            0, // layout location
+            3, // 每个顶点有3个分量 (x, y, z)
             gl::FLOAT,
             gl::FALSE,
-            3 * std::mem::size_of::<f32>() as GLsizei,
+            6 * std::mem::size_of::<f32>() as GLsizei, // 每个顶点占用6个浮点数的大小 (3位置 + 3颜色)
             std::ptr::null(),
         );
-        gl::EnableVertexAttribArray(0);
+
+        // 设置颜色属性
+        gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            1, // layout location
+            3, // 每个颜色有3个分量 (r, g, b)
+            gl::FLOAT,
+            gl::FALSE,
+            6 * std::mem::size_of::<f32>() as GLsizei, // 每个顶点占用6个浮点数的大小 (3位置 + 3颜色)
+            (3 * std::mem::size_of::<f32>()) as *const _,
+        );
 
         // 使用着色器程序
         gl::UseProgram(shader_program);
 
-        // 设置投影矩阵（如果需要的话）
-        let projection = ortho(
-            0.0,   // left
-            800.0, // right
-            0.0,   // bottom
-            600.0, // top
-            -1.0,  // near
-            1.0,   // far
-        );
-        let proj_name = CString::new("projection").unwrap();
+        // 设置投影矩阵
         let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
-        // 渲染三角形
+        // 绘制三角形
         gl::DrawArrays(gl::TRIANGLES, 0, 3);
 
-        // 清理资源
-        gl::DeleteVertexArrays(1, &triangle_vao);
-        gl::DeleteBuffers(1, &triangle_vbo);
+
+        // 将纹理附加到FBO
+        gl::FramebufferTexture2D(
+            gl::FRAMEBUFFER,
+            gl::COLOR_ATTACHMENT0,
+            gl::TEXTURE_2D,
+            textfbo_texture,
+            0,
+        );
     }
 
-    triangle_fbo_texture
+    textfbo
 }

@@ -5,8 +5,8 @@ pub(crate) static FBO_VERTEX_SHADER_SOURCE: &str = include_str!("./shaders/fbo_v
 pub(crate) static FBO_FRAGMENT_SHADER_SOURCE: &str = include_str!("./shaders/fbo_fragment.glsl");
 pub(crate) static TEXT_VERTEX_SHADER_SOURCE: &str = include_str!("./shaders/text_vertex.glsl");
 pub(crate) static TEXT_FRAGMENT_SHADER_SOURCE: &str = include_str!("./shaders/text_fragment.glsl");
-pub(crate) static TR_VERTEX_SHADER_SOURCE: &str = include_str!("./shaders/fbo_vertex.glsl");
-pub(crate) static TR_FRAGMENT_SHADER_SOURCE: &str = include_str!("./shaders/fbo_fragment.glsl");
+pub(crate) static TR_VERTEX_SHADER_SOURCE: &str = include_str!("./shaders/shader_vertex.glsl");
+pub(crate) static TR_FRAGMENT_SHADER_SOURCE: &str = include_str!("./shaders/shader_fragment.glsl");
 
 pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) {
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);

@@ -19,30 +19,22 @@ pub(crate) async fn render(
     let (shader_program, shader_program_fbo, shader_program_tr) = prepare_shader();
     let characters = init_freetype().await;
     let mut text_fbo;
+    let mut triangle_fbo;
 
     'opengl_loop: loop {
         clean_screen();
         text_fbo = render_text(shader_program, &characters);
-        let triangle_fbo = render_tr(shader_program_tr);
+        triangle_fbo = render_tr(shader_program_tr);
+
+        reder_fbo(triangle_fbo, shader_program_fbo);
+        canvas.present();
 
         for event in event_pump.poll_iter() {
             match event {
                 sdl2::event::Event::Quit { .. } => break 'opengl_loop,
-                sdl2::event::Event::KeyDown { keycode, .. } => {
-                    println!("Key pressed: {:?}", keycode);
-                    if let Some(Keycode::S) = keycode {
-                        println!("Attempting to save FBOs...");
-                        save_fbo_to_file(text_fbo, 800, 600, "text_fbo.png");
-                        save_fbo_to_file(triangle_fbo, 800, 600, "triangle_fbo.png");
-                        println!("FBOs saved to files!");
-                    }
-                }
                 _ => {}
             }
         }
-
-        reder_fbo(text_fbo, shader_program_fbo);
-        canvas.present();
     }
 }
 
