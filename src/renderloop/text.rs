@@ -13,10 +13,7 @@ impl QuadGeometry {
             character.size.1 as f32 * scale.y,
         );
 
-        let bearing = Vector2::new(
-            character.bearing.0 as f32,
-            character.bearing.1 as f32,
-        );
+        let bearing = Vector2::new(character.bearing.0 as f32, character.bearing.1 as f32);
 
         let pos = Point2::new(
             base_pos.x + bearing.x * scale.x,
@@ -24,22 +21,40 @@ impl QuadGeometry {
         );
 
         let vertices = [
-            pos.x, pos.y + size.y, 0.0, 0.0,
-            pos.x, pos.y, 0.0, 1.0,
-            pos.x + size.x, pos.y, 1.0, 1.0,
-            pos.x, pos.y + size.y, 0.0, 0.0,
-            pos.x + size.x, pos.y, 1.0, 1.0,
-            pos.x + size.x, pos.y + size.y, 1.0, 0.0,
+            pos.x,
+            pos.y + size.y,
+            0.0,
+            0.0,
+            pos.x,
+            pos.y,
+            0.0,
+            1.0,
+            pos.x + size.x,
+            pos.y,
+            1.0,
+            1.0,
+            pos.x,
+            pos.y + size.y,
+            0.0,
+            0.0,
+            pos.x + size.x,
+            pos.y,
+            1.0,
+            1.0,
+            pos.x + size.x,
+            pos.y + size.y,
+            1.0,
+            0.0,
         ];
 
         Self { vertices }
     }
 }
 
-pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, characters: &HashMap<char, Character>) {
+pub fn render_text(shader_program: GLuint, characters: &HashMap<char, Character>) -> GLuint {
     // 创建FBO和纹理
-    let mut fbo = 0;
-    let mut fbo_texture = 0;
+    let mut textfbo = 0;
+    let mut textfbo_texture = 0;
 
     let character = characters.get(&'H').unwrap();
 
@@ -66,7 +81,7 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
 
     unsafe {
         // 首先渲染到FBO
-        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, textfbo);
         gl::ClearColor(0.0, 0.0, 0.0, 0.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
@@ -105,17 +120,22 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
 
         // 创建并绑定FBO
-        gl::GenFramebuffers(1, &mut fbo);
-        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
+        gl::GenFramebuffers(1, &mut textfbo);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, textfbo);
 
         // 创建FBO纹理
-        gl::GenTextures(1, &mut fbo_texture);
-        gl::BindTexture(gl::TEXTURE_2D, fbo_texture);
+        gl::GenTextures(1, &mut textfbo_texture);
+        gl::BindTexture(gl::TEXTURE_2D, textfbo_texture);
         gl::TexImage2D(
-            gl::TEXTURE_2D, 0, gl::RGBA as i32,
-            800, 600, // 使用窗口大小
-            0, gl::RGBA, gl::UNSIGNED_BYTE,
-            std::ptr::null()
+            gl::TEXTURE_2D,
+            0,
+            gl::RGBA as i32,
+            800,
+            600, // 使用窗口大小
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            std::ptr::null(),
         );
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
@@ -125,27 +145,9 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT0,
             gl::TEXTURE_2D,
-            fbo_texture,
-            0
+            textfbo_texture,
+            0,
         );
-    
-        // 切换回默认帧缓冲
-        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        
-        // 这里需要使用另一个着色器程序来渲染FBO纹理到屏幕
-        gl::UseProgram(shader_program_fbo);
-        
-        // 绑定FBO纹理
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, fbo_texture);
-        
-        // 渲染全屏四边形
-        gl::DrawArrays(gl::TRIANGLES, 0, 6);
-
-        // 清理资源
-        gl::DeleteFramebuffers(1, &fbo);
-        gl::DeleteTextures(1, &fbo_texture);
-        gl::DeleteBuffers(1, &vbo);
-        gl::DeleteVertexArrays(1, &vao);
     }
+    textfbo_texture
 }

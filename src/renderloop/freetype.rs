@@ -10,10 +10,10 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     let mut characters = HashMap::new();
 
     // 定义需要加载的字符
-    let chars_to_load: Vec<char> = (0..=9)  // 数字 0-9
+    let chars_to_load: Vec<char> = (0..=9) // 数字 0-9
         .map(|n| n.to_string().chars().next().unwrap())
-        .chain('A'..='Z')  // 大写字母 A-Z
-        .chain('a'..='z')  // 小写字母 a-z
+        .chain('A'..='Z') // 大写字母 A-Z
+        .chain('a'..='z') // 小写字母 a-z
         .collect();
 
     // 遍历加载每个字符
@@ -66,4 +66,3 @@ pub async fn init_freetype() -> HashMap<char, Character> {
 
     characters
 }
-
