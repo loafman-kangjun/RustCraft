@@ -67,9 +67,3 @@ pub async fn init_freetype() -> HashMap<char, Character> {
     characters
 }
 
-// 添加一个辅助函数来清理资源
-pub unsafe fn cleanup_characters(characters: &HashMap<char, Character>) {
-    for character in characters.values() {
-        gl::DeleteTextures(1, &character.texture_id);
-    }
-}

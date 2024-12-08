@@ -41,7 +41,6 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
     let mut fbo = 0;
     let mut fbo_texture = 0;
 
-
     let character = characters.get(&'H').unwrap();
 
     let mut vao = 0;
@@ -63,6 +62,7 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
     );
 
     let tex_name = CString::new("textTexture").unwrap();
+    let proj_name = CString::new("projection").unwrap();
 
     unsafe {
         // 首先渲染到FBO
@@ -94,7 +94,6 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
 
         gl::UseProgram(shader_program);
 
-        let proj_name = CString::new("projection").unwrap();
         let projection_loc = gl::GetUniformLocation(shader_program, proj_name.as_ptr());
         gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection.as_ptr());
 
@@ -105,38 +104,35 @@ pub fn render_text(shader_program: GLuint, shader_program_fbo: GLuint, character
 
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
 
-        unsafe {
-            // 创建并绑定FBO
-            gl::GenFramebuffers(1, &mut fbo);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
-    
-            // 创建FBO纹理
-            gl::GenTextures(1, &mut fbo_texture);
-            gl::BindTexture(gl::TEXTURE_2D, fbo_texture);
-            gl::TexImage2D(
-                gl::TEXTURE_2D, 0, gl::RGBA as i32,
-                800, 600, // 使用窗口大小
-                0, gl::RGBA, gl::UNSIGNED_BYTE,
-                std::ptr::null()
-            );
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-    
-            // 将纹理附加到FBO
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D,
-                fbo_texture,
-                0
-            );
-        }
+        // 创建并绑定FBO
+        gl::GenFramebuffers(1, &mut fbo);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, fbo);
 
+        // 创建FBO纹理
+        gl::GenTextures(1, &mut fbo_texture);
+        gl::BindTexture(gl::TEXTURE_2D, fbo_texture);
+        gl::TexImage2D(
+            gl::TEXTURE_2D, 0, gl::RGBA as i32,
+            800, 600, // 使用窗口大小
+            0, gl::RGBA, gl::UNSIGNED_BYTE,
+            std::ptr::null()
+        );
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        // 将纹理附加到FBO
+        gl::FramebufferTexture2D(
+            gl::FRAMEBUFFER,
+            gl::COLOR_ATTACHMENT0,
+            gl::TEXTURE_2D,
+            fbo_texture,
+            0
+        );
+    
         // 切换回默认帧缓冲
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         
         // 这里需要使用另一个着色器程序来渲染FBO纹理到屏幕
-        // 假设你已经有了一个用于渲染FBO的着色器程序 fbo_shader_program
         gl::UseProgram(shader_program_fbo);
         
         // 绑定FBO纹理

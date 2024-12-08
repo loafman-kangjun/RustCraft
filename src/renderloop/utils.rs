@@ -1,32 +1,7 @@
 extern crate gl;
 
-use crate::renderloop::init::FRAGMENT_SHADER_SOURCE;
-use crate::renderloop::init::VERTEX_SHADER_SOURCE;
-use crate::renderloop::init::VERTEX_FBO_SHADER_SOURCE;
-use crate::renderloop::init::FRAGMENT_FBO_SHADER_SOURCE;
 use gl::types::*;
 use std::ffi::CString;
-
-pub fn init_opengl(video_subsystem: &sdl2::VideoSubsystem) -> (GLuint, GLuint) {
-    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
-
-    let vertex_shader = compile_shader(VERTEX_SHADER_SOURCE, gl::VERTEX_SHADER);
-    let fragment_shader = compile_shader(FRAGMENT_SHADER_SOURCE, gl::FRAGMENT_SHADER);
-    let shader_program = link_program(vertex_shader, fragment_shader);
-
-    let vertex_fbo = compile_shader(VERTEX_FBO_SHADER_SOURCE, gl::VERTEX_SHADER);
-    let fragment_fbo = compile_shader(FRAGMENT_FBO_SHADER_SOURCE, gl::FRAGMENT_SHADER);
-    let shader_program_fbo = link_program(vertex_fbo, fragment_fbo);
-
-    unsafe {
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-        gl::DeleteShader(vertex_fbo);
-        gl::DeleteShader(fragment_fbo);
-    }
-
-    (shader_program, shader_program_fbo)
-}
 
 pub fn clean_screen() {
     unsafe {
