@@ -1,16 +1,34 @@
 use bevy::prelude::*;
+// use bevy_rapier3d::prelude::*;
+use leafwing_input_manager::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(InputManagerPlugin::<Action>::default())
+        // .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (draw_cursor, move_camera))
         .run();
 }
 
-fn move_camera(mut query: Query<&mut Transform, With<Camera3d>>) {
-    for mut transform in &mut query {
-        transform.translation.x += 0.1; // 每帧X坐标增加0.1
+#[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
+enum Action {
+    Run,
+    Jump,
+}
+
+fn move_camera(
+    mut query: Query<(&ActionState<Action>, &mut Transform), With<Camera3d>>,
+) {
+    for (action_state, mut transform) in &mut query {
+        // 仅当按下了 Action::Run（即W键）时移动相机
+        if action_state.pressed(&Action::Run) {
+            // 这里示例为向场景中“前进”，可以根据需求调整方向
+            // 此处使用相机的 forward 方向来进行移动
+            let forward = transform.forward();
+            transform.translation += forward * 0.1;
+        }
     }
 }
 fn draw_cursor(
@@ -70,6 +88,10 @@ fn setup(
         Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
+
+    let mut input_map = InputMap::default();
+    input_map.insert(Action::Run, KeyCode::KeyW);
+
     // camera
     commands.spawn((
         Camera3d::default(),
@@ -78,45 +100,9 @@ fn setup(
             ..default()
         },
         Transform::from_xyz(15.0, 5.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        InputManagerBundle::<Action> {
+            input_map,
+            ..default()
+        },
     ));
 }
-
-
-// use bevy::prelude::*;
-//
-// fn main() {
-//     App::new()
-//         .add_plugins(DefaultPlugins)
-//         .add_systems(Startup, setup)
-//         .add_systems(Update, (draw_cursor, move_camera)) // 添加移动摄像头的系统
-//         .run();
-// }
-//
-// // 新增的摄像头移动系统
-// fn move_camera(mut query: Query<&mut Transform, With<Camera3d>>) {
-//     for mut transform in &mut query {
-//         transform.translation.x += 0.1; // 每帧X坐标增加0.1
-//     }
-// }
-//
-// // 以下保持原样...
-//
-// fn draw_cursor(
-//     camera_query: Single<(&Camera, &GlobalTransform)>,
-//     ground: Single<&GlobalTransform, With<Ground>>,
-//     windows: Single<&Window>,
-//     mut gizmos: Gizmos,
-// ) {
-//     // ...原函数内容不变
-// }
-//
-// #[derive(Component)]
-// struct Ground;
-//
-// fn setup(
-//     mut commands: Commands,
-//     mut meshes: ResMut<Assets<Mesh>>,
-//     mut materials: ResMut<Assets<StandardMaterial>>,
-// ) {
-//     // ...原setup内容不变
-// }
