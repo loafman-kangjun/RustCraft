@@ -14,11 +14,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Deps
+        run: sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev libxkbcommon-dev
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable # 使用稳定版Rust工具链
-          profile: minimal # 使用最小化配置文件
+          toolchain: stable
+          profile: minimal
           override: true
 
       - name: Build project

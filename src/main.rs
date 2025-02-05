@@ -1,20 +1,21 @@
 use bevy::prelude::*;
-// use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(InputManagerPlugin::<Action>::default())
-        // .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, (draw_cursor, move_camera))
+        .add_systems(Update, (move_camera, draw_cursor))
         .run();
 }
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 enum Action {
-    Run,
+    Forward,
+    Backward,
+    Left,
+    Right,
     Jump,
 }
 
@@ -22,15 +23,26 @@ fn move_camera(
     mut query: Query<(&ActionState<Action>, &mut Transform), With<Camera3d>>,
 ) {
     for (action_state, mut transform) in &mut query {
-        // 仅当按下了 Action::Run（即W键）时移动相机
-        if action_state.pressed(&Action::Run) {
-            // 这里示例为向场景中“前进”，可以根据需求调整方向
-            // 此处使用相机的 forward 方向来进行移动
-            let forward = transform.forward();
-            transform.translation += forward * 0.1;
+        let mut direction = Vec3::ZERO;
+        if action_state.pressed(&Action::Forward) {
+            direction += *transform.forward();
+        }
+        if action_state.pressed(&Action::Backward) {
+            direction -= *transform.forward();
+        }
+        if action_state.pressed(&Action::Right) {
+            direction += *transform.right();
+        }
+        if action_state.pressed(&Action::Left) {
+            direction -= *transform.right();
+        }
+        if direction != Vec3::ZERO {
+            // 使用 delta_seconds_f32() 获取 f32 类型的增量时间
+            transform.translation += direction.normalize() * 0.1;
         }
     }
 }
+
 fn draw_cursor(
     camera_query: Single<(&Camera, &GlobalTransform)>,
     ground: Single<&GlobalTransform, With<Ground>>,
@@ -75,24 +87,28 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // plane
+    // 创建地面
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
         Ground,
     ));
 
-    // light
+    // 创建光源
     commands.spawn((
         DirectionalLight::default(),
         Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-
+    // 创建输入映射，将 WASD 分别映射到不同的动作
     let mut input_map = InputMap::default();
-    input_map.insert(Action::Run, KeyCode::KeyW);
+    input_map.insert(Action::Forward, KeyCode::KeyW);
+    input_map.insert(Action::Backward, KeyCode::KeyS);
+    input_map.insert(Action::Left, KeyCode::KeyA);
+    input_map.insert(Action::Right, KeyCode::KeyD);
+    input_map.insert(Action::Jump, KeyCode::Space);
 
-    // camera
+    // 创建相机实体，并附加 InputManagerBundle
     commands.spawn((
         Camera3d::default(),
         Camera {
