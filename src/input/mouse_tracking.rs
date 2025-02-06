@@ -1,29 +1,47 @@
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use crate::LastCursorPosition;
-use crate::MouseMotionDelta;
 
-pub fn track_mouse_movement(
-    mut cursor_moved_reader: EventReader<CursorMoved>,
-    mut last_position: ResMut<LastCursorPosition>,
-    mut motion: ResMut<MouseMotionDelta>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-) {
-    let window = windows.single();
-    let window_center = Vec2::new(window.width() / 2.0, window.height() / 2.0);
+#[derive(Component)]
+pub struct CameraController {
+    pub pitch: f32,
+    pub yaw: f32,
+    pub sensitivity: f32,
+}
 
-    for event in cursor_moved_reader.read() {
-        if let Some(last) = last_position.position {
-            motion.delta = event.position - last;
-        } else {
-            motion.delta = Vec2::ZERO;
+impl Default for CameraController {
+    fn default() -> Self {
+        Self {
+            pitch: 0.0,
+            yaw: 0.0,
+            sensitivity: 0.005, // 可根据需要调整
         }
-        last_position.position = Some(event.position);
+    }
+}
+
+pub fn update_camera_rotation(
+    mut query: Query<(&mut Transform, &mut CameraController), With<Camera3d>>,
+    mut mouse_motion_events: EventReader<MouseMotion>,
+    time: Res<Time>,
+) {
+    let mut total_delta = Vec2::ZERO;
+    // 累计这一帧内所有的鼠标相对移动
+    for event in mouse_motion_events.read() {
+        total_delta += event.delta;
     }
 
-    if last_position.position.is_none() {
-        last_position.position = Some(window_center);
+    if total_delta == Vec2::ZERO {
+        return;
     }
 
-    println!("Mouse Delta: {:?}", motion.delta);
+    for (mut transform, mut controller) in query.iter_mut() {
+        controller.yaw -= total_delta.x * controller.sensitivity * time.delta().as_secs_f32();
+        controller.pitch -= total_delta.y * controller.sensitivity * time.delta().as_secs_f32();
+        controller.pitch = controller
+            .pitch
+            .clamp(-89f32.to_radians(), 89f32.to_radians());
+        let yaw_rotation = Quat::from_axis_angle(Vec3::Y, controller.yaw);
+        let pitch_rotation = Quat::from_axis_angle(Vec3::X, controller.pitch);
+
+        transform.rotation = yaw_rotation * pitch_rotation;
+    }
 }
