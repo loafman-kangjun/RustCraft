@@ -8,7 +8,8 @@ pub enum Action {
     Backward,
     Left,
     Right,
-    Jump,
+    Up,
+    Down,
 }
 
 pub fn move_camera(
@@ -27,6 +28,13 @@ pub fn move_camera(
         }
         if action_state.pressed(&Action::Left) {
             direction -= *transform.right();
+        }
+        if action_state.pressed(&Action::Up) {
+            direction += *transform.up();
+        }
+        // 新增：向下
+        if action_state.pressed(&Action::Down) {
+            direction -= *transform.up();
         }
         if direction != Vec3::ZERO {
             // 使用 delta_seconds_f32() 获取 f32 类型的增量时间

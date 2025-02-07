@@ -32,7 +32,7 @@ fn setup(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     let cursor_options = CursorOptions {
-        visible: true,
+        visible: false,
         grab_mode: CursorGrabMode::Locked,
         hit_test: true,
     };
@@ -58,12 +58,14 @@ fn setup(
     input_map.insert(Action::Backward, KeyCode::KeyS);
     input_map.insert(Action::Left, KeyCode::KeyA);
     input_map.insert(Action::Right, KeyCode::KeyD);
-    input_map.insert(Action::Jump, KeyCode::Space);
+    input_map.insert(Action::Up, KeyCode::KeyE);
+    input_map.insert(Action::Down, KeyCode::KeyQ);
 
     // 创建相机实体，并附加 InputManagerBundle
     commands.spawn((
         Camera3d::default(),
         Camera {
+            order: 0,
             hdr: true,
             ..default()
         },
@@ -74,4 +76,17 @@ fn setup(
         },
         CameraController::default(),
     ));
+
+    commands
+        .spawn(Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        })
+        .with_child((
+            Text::new("+"),
+            TextColor(Color::srgba(0.9, 0.9, 0.9,0.8)),
+        ));
 }

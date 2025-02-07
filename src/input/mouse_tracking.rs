@@ -13,7 +13,7 @@ impl Default for CameraController {
         Self {
             pitch: 0.0,
             yaw: 0.0,
-            sensitivity: 0.005, // 可根据需要调整
+            sensitivity: 0.05, // 可根据需要调整
         }
     }
 }
