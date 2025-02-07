@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use leafwing_input_manager::Actionlike;
 use leafwing_input_manager::prelude::*;
+use leafwing_input_manager::Actionlike;
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum Action {
@@ -12,9 +12,7 @@ pub enum Action {
     Down,
 }
 
-pub fn move_camera(
-    mut query: Query<(&ActionState<Action>, &mut Transform), With<Camera3d>>,
-) {
+pub fn move_camera(mut query: Query<(&ActionState<Action>, &mut Transform), With<Camera3d>>) {
     for (action_state, mut transform) in &mut query {
         let mut direction = Vec3::ZERO;
         if action_state.pressed(&Action::Forward) {
@@ -42,39 +40,3 @@ pub fn move_camera(
         }
     }
 }
-
-// fn draw_cursor(
-//     camera_query: Single<(&Camera, &GlobalTransform)>,
-//     ground: Single<&GlobalTransform, With<Ground>>,
-//     windows: Single<&Window>,
-//     mut gizmos: Gizmos,
-// ) {
-//     let (camera, camera_transform) = *camera_query;
-//
-//     let Some(cursor_position) = windows.cursor_position() else {
-//         return;
-//     };
-//
-//     // Calculate a ray pointing from the camera into the world based on the cursor's position.
-//     let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
-//         return;
-//     };
-//
-//     // Calculate if and where the ray is hitting the ground plane.
-//     let Some(distance) =
-//         ray.intersect_plane(ground.translation(), InfinitePlane3d::new(ground.up()))
-//     else {
-//         return;
-//     };
-//     let point = ray.get_point(distance);
-//
-//     // Draw a circle just above the ground plane at that position.
-//     gizmos.circle(
-//         Isometry3d::new(
-//             point + ground.up() * 0.01,
-//             Quat::from_rotation_arc(Vec3::Z, ground.up().as_vec3()),
-//         ),
-//         0.2,
-//         Color::WHITE,
-//     );
-// }
