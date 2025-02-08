@@ -1,4 +1,6 @@
+use crate::input::mouse_tracking::CameraController;
 use bevy::prelude::*;
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use leafwing_input_manager::prelude::*;
 use leafwing_input_manager::Actionlike;
 
@@ -39,4 +41,41 @@ pub fn move_camera(mut query: Query<(&ActionState<Action>, &mut Transform), With
             transform.translation += direction.normalize() * 0.1;
         }
     }
+}
+
+pub fn init_move(
+    mut commands: Commands,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    let mut input_map = InputMap::default();
+    input_map.insert(Action::Forward, KeyCode::KeyW);
+    input_map.insert(Action::Backward, KeyCode::KeyS);
+    input_map.insert(Action::Left, KeyCode::KeyA);
+    input_map.insert(Action::Right, KeyCode::KeyD);
+    input_map.insert(Action::Up, KeyCode::KeyE);
+    input_map.insert(Action::Down, KeyCode::KeyQ);
+
+    let cursor_options = CursorOptions {
+        visible: false,
+        grab_mode: CursorGrabMode::Locked,
+        hit_test: true,
+    };
+
+    let mut window = windows.single_mut();
+    window.cursor_options = cursor_options;
+
+    commands.spawn((
+        Camera3d::default(),
+        Camera {
+            order: 0,
+            hdr: true,
+            ..default()
+        },
+        Transform::from_xyz(15.0, 5.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        InputManagerBundle::<Action> {
+            input_map,
+            ..default()
+        },
+        CameraController::default(),
+    ));
 }
