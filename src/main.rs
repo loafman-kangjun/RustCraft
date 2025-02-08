@@ -17,6 +17,7 @@ fn main() {
                 move_action::move_camera,
                 draw_cursor,
                 mouse_tracking::update_camera_rotation,
+                raycast::raycast_system
             ),
         )
         .run();
@@ -42,24 +43,11 @@ fn setup(
         Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-    let cube = meshes.add(Cuboid::new(1.0, 1.0, 1.0));
-
-    // Define the golden angle for hue rotation.
-    const GOLDEN_ANGLE: f32 = 137.507_77;
-    let mut hsla = Hsla::hsl(0.0, 1.0, 0.5);
-    const GRID_SIZE: i32 = 11; // 11×11 cubes for example
-    let half = GRID_SIZE / 2;
-    for x in -half..=half {
-        for z in -half..=half {
-            // The cube's center is shifted upward by 0.5 so that its bottom sits on y = 0.
-            commands.spawn((
-                Mesh3d(cube.clone()),
-                MeshMaterial3d(materials.add(Color::from(hsla))),
-                Transform::from_translation(Vec3::new(x as f32, 0.5, z as f32)),
-            ));
-            hsla = hsla.rotate_hue(GOLDEN_ANGLE);
-        }
-    }
+        commands.spawn((
+            Mesh3d(meshes.add(Cuboid::new(2.0, 2.0, 2.0))),
+            MeshMaterial3d(materials.add(Color::srgb(0.1, 0.1, 0.1))),
+            Transform::default(),
+        ));
 
     commands
         .spawn(Node {
