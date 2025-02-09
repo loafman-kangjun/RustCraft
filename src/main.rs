@@ -17,7 +17,7 @@ fn main() {
                 move_action::move_camera,
                 draw_cursor,
                 mouse_tracking::update_camera_rotation,
-                raycast::raycast_system
+                raycast::raycast_system,
             ),
         )
         .run();
@@ -43,11 +43,17 @@ fn setup(
         Transform::from_translation(Vec3::ONE).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-        commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(2.0, 2.0, 2.0))),
-            MeshMaterial3d(materials.add(Color::srgb(0.1, 0.1, 0.1))),
-            Transform::default(),
-        ));
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(2.0, 2.0, 2.0))),
+        MeshMaterial3d(materials.add(Color::srgb(0.1, 0.1, 0.1))),
+        Transform::default(),
+    ));
+
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(2.0, 2.0, 2.0))),
+        MeshMaterial3d(materials.add(Color::srgb(0.1, 0.1, 0.1))),
+        Transform::from_xyz(3.0, 0.0, 0.0),
+    ));
 
     commands
         .spawn(Node {

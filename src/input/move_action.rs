@@ -43,10 +43,7 @@ pub fn move_camera(mut query: Query<(&ActionState<Action>, &mut Transform), With
     }
 }
 
-pub fn init_move(
-    mut commands: Commands,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
-) {
+pub fn init_move(mut commands: Commands, mut windows: Query<&mut Window, With<PrimaryWindow>>) {
     let mut input_map = InputMap::default();
     input_map.insert(Action::Forward, KeyCode::KeyW);
     input_map.insert(Action::Backward, KeyCode::KeyS);
