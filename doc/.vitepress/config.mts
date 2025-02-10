@@ -37,5 +37,7 @@ export default defineConfig({
       label: 'English',
       lang: 'en-US',
     },
-  }
+  },
+
+  base: 'RustCraft',
 })
