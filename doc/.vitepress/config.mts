@@ -39,5 +39,5 @@ export default defineConfig({
     },
   },
 
-  base: 'RustCraft',
+  base: './',
 })
