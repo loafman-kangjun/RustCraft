@@ -33,7 +33,6 @@ pub fn gn() {
         }
     }
 
-
     // 3. 保存为图像
     let mut img = ImageBuffer::new(width as u32, height as u32);
     for x in 0..width as u32 {

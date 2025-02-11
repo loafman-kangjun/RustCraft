@@ -1,13 +1,14 @@
+mod gnworld;
 mod input;
 mod ui;
-mod gnworld;
 
 use crate::input::move_action::Action;
 use bevy::prelude::*;
+use gnworld::blur::gn;
+use image::{GenericImageView, Luma, Pixel};
 use input::*;
 use leafwing_input_manager::prelude::*;
 use ui::state::AppState;
-use gnworld::blur::gn;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -39,35 +40,28 @@ struct Ground;
 fn setup_game(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     gn();
-    // let texture_handle: Handle<Image> = asset_server.load("blurred_noise.png");
-    //
-    // // 等待图片加载完成
-    // let texture = asset_server.get_handle::<Image>(texture_handle.id());
-    // if let Some(texture) = texture {
-    //     let width = texture.size().x as u32;
-    //     let height = texture.size().y as u32;
-    //
-    //     // 获取高度数据
-    //     let height_data = texture.data.clone();
-    //
-    //     // 生成地形
-    //     for x in 0..width {
-    //         for y in 0..height {
-    //             let index = (y * width + x) as usize;
-    //             let height = height_data[index] as f32; // 获取高度值
-    //
-    //             commands.spawn(PbrBundle {
-    //                 mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-    //                 material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-    //                 transform: Transform::from_xyz(x as f32, height / 2.0, y as f32), // 设置立方体位置
-    //                 ..default()
-    //             });
-    //         }
-    //     }
+
+    let img = image::open("blurred_noise.png").unwrap();
+    let (width, height) = img.dimensions();
+    let img = img.grayscale();
+
+    // 创建立方体
+    for x in 0..width {
+        for y in 0..height {
+            let pixel: Luma<u8> = img.get_pixel(x, y).to_luma();
+            let height = pixel[0] as f32 / 255.0 * 10.0; // 调整高度比例
+
+            commands.spawn((
+                Mesh3d(meshes.add(Cuboid::new(2.0, 2.0, 2.0))),
+                MeshMaterial3d(materials.add(Color::srgb(0.1, 0.1, 0.1))),
+                Transform::from_xyz(x as f32, height, y as f32),
+            ));
+        }
+    }
+
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
